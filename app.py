@@ -185,6 +185,14 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+@app.route('/verificar_correo')
+def verificar_correo():
+    from flask import jsonify
+    from models.usuario_model import UsuarioModel
+    correo = request.args.get('correo', '')
+    usuario = UsuarioModel().obtener_usuario_por_correo(correo)
+    return jsonify(existe=bool(usuario))
+
 # ================= RUTAS DE USUARIO / ROLES =================
 
 @app.route('/home_donador')

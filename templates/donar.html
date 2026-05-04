@@ -27,9 +27,63 @@
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        .text-primary {
-            color: #0d6efd !important;
+        .text-primary { color: #0d6efd !important; }
+
+        /* ── Descripción de fundación ── */
+        .fundacion-desc-box {
+            display: none;
+            background: #f0f4ff;
+            border: 1px solid #c7d4f8;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-top: 8px;
+            font-size: 0.88rem;
+            color: #3a3a6e;
+            line-height: 1.5;
         }
+        .fundacion-desc-box i { color: #2575fc; margin-right: 6px; }
+
+        /* ── Zona de fotos ── */
+        .fotos-zona {
+            border: 2px dashed #c0c0c0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: #fafafa;
+            transition: border-color 0.2s;
+            cursor: pointer;
+        }
+        .fotos-zona:hover { border-color: #2575fc; background: #f0f4ff; }
+        .fotos-zona p { margin: 0; color: #888; font-size: 0.88rem; }
+        .fotos-preview {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            justify-content: center;
+        }
+        .fotos-preview img {
+            width: 90px; height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        .fotos-preview .foto-item { position: relative; }
+        .fotos-preview .btn-quitar {
+            position: absolute; top: -6px; right: -6px;
+            background: #dc3545; color: white; border: none;
+            border-radius: 50%; width: 20px; height: 20px;
+            font-size: 0.7rem; cursor: pointer; line-height: 20px;
+            text-align: center; padding: 0;
+        }
+
+        /* ── Fix footer solo en esta página ── */
+        footer.bg-dark {
+            padding: 12px 20px !important;
+            flex-shrink: 0 !important;
+        }
+        footer.bg-dark h6 { font-size: 0.82rem !important; margin-bottom: 2px !important; }
+        footer.bg-dark p  { font-size: 0.76rem !important; margin-bottom: 1px !important; }
     </style>
 {% endblock %}
 
@@ -38,7 +92,6 @@
     <div class="form-card">
         <h1 class="text-center mb-4 text-primary fw-bold">🎁 Publicar Donación</h1>
 
-        {# Sección informativa si el donador viene desde una necesidad específica #}
         {% if necesidad %}
         <div class="info-urgencia shadow-sm">
             <i class="fas fa-exclamation-triangle me-2"></i>
@@ -47,36 +100,51 @@
         </div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else None) }}" class="needs-validation">
-            
-            {# Campo: Fundación Destino #}
+        <form method="POST"
+              action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else None) }}"
+              class="needs-validation"
+              enctype="multipart/form-data">
+
+            {# ── Fundación Destino ── #}
             <div class="mb-3">
                 <label class="form-label fw-bold">🏛️ Fundación Destino:</label>
                 {% if necesidad %}
-                    <input type="text" 
-                           value="{{ necesidad.nombre_fundacion }}" 
-                           class="form-control readonly-field"
-                           readonly>
+                    <input type="text"
+                           value="{{ necesidad.nombre_fundacion }}"
+                           class="form-control readonly-field" readonly>
                     <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
+                    {% if necesidad.descripcion_fundacion %}
+                    <div class="fundacion-desc-box" style="display:block;">
+                        <i class="fas fa-info-circle"></i>{{ necesidad.descripcion_fundacion }}
+                    </div>
+                    {% endif %}
                 {% else %}
-                    <select name="fundacion_id" class="form-select" required>
+                    <select name="fundacion_id" class="form-select" required
+                            onchange="mostrarDescripcionFundacion(this)">
                         <option value="" disabled selected>Selecciona la fundación destino...</option>
                         {% for fund in fundaciones_activas %}
-                            <option value="{{ fund.id }}">{{ fund.nombre }}</option>
+                            <option value="{{ fund.id }}"
+                                    data-desc="{{ fund.descripcion if fund.descripcion else '' }}">
+                                {{ fund.nombre }}
+                            </option>
                         {% endfor %}
                     </select>
+                    {# Caja descripción dinámica — se muestra al elegir fundación #}
+                    <div class="fundacion-desc-box" id="desc-fundacion">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="texto-desc-fundacion"></span>
+                    </div>
                 {% endif %}
             </div>
 
-            {# Campo: Categoría #}
+            {# ── Categoría ── #}
             <div class="mb-3">
                 <label class="form-label fw-bold">📂 Categoría de la Donación:</label>
                 {% if necesidad %}
-                    {# Si viene de una necesidad, la categoría ya está fija #}
-                    <input type="text" value="{{ necesidad.nombre_categoria }}" class="form-control readonly-field" readonly>
+                    <input type="text" value="{{ necesidad.nombre_categoria }}"
+                           class="form-control readonly-field" readonly>
                     <input type="hidden" name="categoria_id" value="{{ necesidad.categoria_id }}">
                 {% else %}
-                    {# Si es donación libre, el usuario elige #}
                     <select name="categoria_id" class="form-select" required>
                         <option value="" disabled selected>Selecciona qué vas a donar...</option>
                         {% for cat in categorias %}
@@ -86,22 +154,43 @@
                 {% endif %}
             </div>
 
-            {# Campo: Descripción #}
+            {# ── Descripción ── #}
             <div class="mb-3">
                 <label class="form-label fw-bold">📝 Descripción de tu donación:</label>
-                <textarea name="descripcion" class="form-control" rows="3" 
-                          placeholder="Ej: 5 bolsas de arroz de 1kg, Ropa para niños talla 10, etc." required></textarea>
+                <textarea name="descripcion" class="form-control" rows="3"
+                          placeholder="Ej: 5 bolsas de arroz de 1kg, Ropa para niños talla 10, etc."
+                          required></textarea>
                 <div class="form-text">Sé lo más específico posible para ayudar a la fundación.</div>
             </div>
 
-            {# Campo: Cantidad #}
-            <div class="mb-4">
+            {# ── Cantidad ── #}
+            <div class="mb-3">
                 <label class="form-label fw-bold">🔢 Cantidad / Unidades:</label>
-                <input type="number" name="cantidad" class="form-control" min="1" 
-                       placeholder="{{ necesidad.cantidad if necesidad else 'Ingresa el número de artículos' }}" required>
+                <input type="number" name="cantidad" class="form-control" min="1"
+                       placeholder="{{ necesidad.cantidad if necesidad else 'Ingresa el número de artículos' }}"
+                       required>
             </div>
 
-            {# Botón de Envío #}
+            {# ── Fotos (máx. 3) ── #}
+            <div class="mb-4">
+                <label class="form-label fw-bold">
+                    📸 Fotos de la Donación
+                    <span class="text-muted fw-normal">(opcional, máx. 3)</span>
+                </label>
+                <div class="fotos-zona" onclick="document.getElementById('inputFotos').click()">
+                    <div style="font-size:2rem;">📷</div>
+                    <p class="mt-1">Haz clic para agregar fotos de lo que vas a donar</p>
+                    <p><small>JPG, PNG — Máximo 3 imágenes</small></p>
+                </div>
+                <input type="file" id="inputFotos" name="fotos_donacion"
+                       accept="image/jpeg,image/png" multiple style="display:none;"
+                       onchange="previsualizarFotos(this)">
+                <div class="fotos-preview" id="preview-fotos"></div>
+                <div id="msg-fotos" class="form-text text-danger" style="display:none;">
+                    Máximo 3 fotos permitidas.
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
                 {% if necesidad %}🤝 CONFIRMAR AYUDA AHORA{% else %}🚀 PUBLICAR MI DONACIÓN{% endif %}
             </button>
@@ -116,4 +205,73 @@
 </div>
 {% endblock %}
 
-{# Fin del archivo donar.html - Red Solidaria #}
+{% block scripts %}
+<script>
+    // ── Descripción de fundación al seleccionar ──
+    function mostrarDescripcionFundacion(select) {
+        const opcion = select.options[select.selectedIndex];
+        const desc   = opcion.getAttribute('data-desc');
+        const caja   = document.getElementById('desc-fundacion');
+        const texto  = document.getElementById('texto-desc-fundacion');
+        if (desc && desc.trim() !== '') {
+            texto.textContent  = desc;
+            caja.style.display = 'block';
+        } else {
+            caja.style.display = 'none';
+        }
+    }
+
+    // ── Previsualizar fotos (máx. 3) ──
+    let archivosSeleccionados = [];
+
+    function previsualizarFotos(input) {
+        const preview = document.getElementById('preview-fotos');
+        const msg     = document.getElementById('msg-fotos');
+        const nuevos  = Array.from(input.files);
+
+        if (archivosSeleccionados.length + nuevos.length > 3) {
+            msg.style.display = 'block';
+            input.value = '';
+            return;
+        }
+        msg.style.display = 'none';
+
+        nuevos.forEach((archivo) => {
+            if (archivosSeleccionados.length >= 3) return;
+            archivosSeleccionados.push(archivo);
+            const idx    = archivosSeleccionados.length - 1;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const item = document.createElement('div');
+                item.className = 'foto-item';
+                item.id = 'foto-item-' + idx;
+                item.innerHTML = `
+                    <img src="${e.target.result}" alt="foto ${idx+1}">
+                    <button type="button" class="btn-quitar" onclick="quitarFoto(${idx})">✕</button>
+                `;
+                preview.appendChild(item);
+            };
+            reader.readAsDataURL(archivo);
+        });
+        actualizarInput();
+    }
+
+    function quitarFoto(idx) {
+        archivosSeleccionados.splice(idx, 1);
+        const item = document.getElementById('foto-item-' + idx);
+        if (item) item.remove();
+        document.querySelectorAll('.foto-item').forEach((el, i) => {
+            el.id = 'foto-item-' + i;
+            el.querySelector('.btn-quitar').setAttribute('onclick', `quitarFoto(${i})`);
+        });
+        actualizarInput();
+        document.getElementById('msg-fotos').style.display = 'none';
+    }
+
+    function actualizarInput() {
+        const dt = new DataTransfer();
+        archivosSeleccionados.forEach(f => dt.items.add(f));
+        document.getElementById('inputFotos').files = dt.files;
+    }
+</script>
+{% endblock %}

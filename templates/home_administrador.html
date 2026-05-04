@@ -34,6 +34,31 @@
         .table thead { background: #1e52ff; color: white; }
         .empty-state { text-align: center; padding: 50px; color: #aaa; }
         .empty-state i { font-size: 3rem; margin-bottom: 15px; display: block; }
+
+        /* ── Botón Reporte Admin dentro del panel — mismo estilo que nav-link-gradiente ── */
+        .btn-reporte-panel {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            border: 1px solid #eee;
+            color: #444;
+            background: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .btn-reporte-panel:hover {
+            background: linear-gradient(135deg, #7b2ff7 0%, #4a90d9 50%, #43c98a 100%);
+            color: #fff;
+            border-color: transparent;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
     </style>
 {% endblock %}
 
@@ -41,13 +66,14 @@
 <div class="container-fluid px-4">
     <div class="main-admin-wrapper">
 
-        {# Header centrado — el botón Reporte Admin está en la navbar #}
+        {# ── HEADER con acceso rápido al Reporte Admin ── #}
         <div class="dashboard-header shadow-sm">
             <h1 class="fw-bold">🏛️ Panel de Gestión - Administrador</h1>
-            <p class="mb-0 opacity-75">Red Solidaria - Monitoreo de actividad en tiempo real</p>
+            <p class="mb-3 opacity-75">Red Solidaria - Monitoreo de actividad en tiempo real</p>
+            </a>
         </div>
 
-        {# Tarjetas #}
+        {# ── TARJETAS DE CONTEO ── #}
         <div class="row g-3 justify-content-center mb-5">
             <div class="col-xl-2 col-md-4 col-6">
                 <div class="stats-card card-donantes" onclick="activarPanel('Donantes-tab')">
@@ -93,7 +119,7 @@
             </div>
         </div>
 
-        {# Tabs #}
+        {# ── TABS ── #}
         <div class="nav-container bg-white p-2 shadow-sm" style="border-radius:15px 15px 0 0;">
             <ul class="nav nav-pills nav-fill" id="adminTabs" role="tablist">
                 <li class="nav-item"><button class="nav-link active" id="Donantes-tab"    data-bs-toggle="tab" data-bs-target="#panel-donantes"    type="button">👥 Donantes</button></li>
@@ -256,7 +282,6 @@
         document.getElementById('modalEstado').textContent = f.estado;
         new bootstrap.Modal(document.getElementById('modalFundacion')).show();
     }
-
     function actualizarEstadoFundacion(idx, nuevoEstado) {
         const span = document.getElementById('estado-' + idx);
         if (!span) return;
@@ -267,17 +292,14 @@
         const btns = document.getElementById('botones-' + idx);
         if (btns) btns.style.display = 'none';
     }
-
     function aprobarFundacion(id, idx) {
         if (!confirm('¿Seguro que deseas aprobar esta fundación?')) return;
         fetch(`/aprobar_fundacion/${id}`, {method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){actualizarEstadoFundacion(idx,'aprobado');alert('Fundación aprobada.');}else alert('Error al aprobar.'); }).catch(()=>alert('Error de conexión.'));
     }
-
     function rechazarFundacion(id, idx) {
         if (!confirm('¿Seguro que deseas rechazar esta fundación?')) return;
         fetch(`/rechazar_fundacion/${id}`, {method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){actualizarEstadoFundacion(idx,'rechazado');alert('Fundación rechazada.');}else alert('Error al rechazar.'); }).catch(()=>alert('Error de conexión.'));
     }
-
     function activarPanel(idBotonTab) {
         const el = document.getElementById(idBotonTab);
         if (el) { new bootstrap.Tab(el).show(); document.getElementById('adminTabs').scrollIntoView({behavior:'smooth',block:'start'}); }

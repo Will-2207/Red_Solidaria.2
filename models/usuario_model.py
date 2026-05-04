@@ -10,7 +10,7 @@ class Usuario:
         self.rol_id = rol_id
         self.estado = estado
         self.fecha_registro = fecha_registro
-        self.tipo_solicitud = tipo_solicitud # <--- LÍNEA MANTENIDA
+        self.tipo_solicitud = tipo_solicitud
         self.foto_perfil = foto_perfil
         self.telefono = telefono
 
@@ -20,26 +20,20 @@ class UsuarioModel:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            
-
             rol_id_int = int(usuario.rol_id)
-            estado = 'pendiente' if rol_id_int == 3 else 'aprobado' 
-            
+            estado = 'pendiente' if rol_id_int == 3 else 'aprobado'
             print(f"DEBUG: Intentando registrar usuario {usuario.correo} con estado {estado}")
-
             query = """
-                INSERT INTO usuarios (nombre, correo, password, rol_id, estado, fecha_registro) 
+                INSERT INTO usuarios (nombre, correo, password, rol_id, estado, fecha_registro)
                 VALUES (%s, %s, %s, %s, %s, NOW())
             """
-            
             cursor.execute(query, (
-                usuario.nombre, 
-                usuario.correo, 
-                usuario.password, 
-                usuario.rol_id, 
+                usuario.nombre,
+                usuario.correo,
+                usuario.password,
+                usuario.rol_id,
                 estado
             ))
-            
             conn.commit()
             print("DEBUG: Usuario creado con éxito en la base de datos")
             return True
@@ -54,7 +48,6 @@ class UsuarioModel:
     def obtener_usuario_por_correo(self, correo):
         conn = None
         try:
-            # Conexión manual directa para evitar el error de 'self.db'
             conn = mysql.connector.connect(
                 host='localhost',
                 user='root',
@@ -104,14 +97,13 @@ class UsuarioModel:
         try:
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT f.nombre, u.correo 
-                FROM fundaciones f 
-                JOIN usuarios u ON f.usuario_id = u.id 
+                SELECT f.nombre, u.correo
+                FROM fundaciones f
+                JOIN usuarios u ON f.usuario_id = u.id
                 WHERE f.id = %s
             """
             cursor.execute(query, (fundacion_id,))
             resultado = cursor.fetchone()
-            
             if resultado:
                 print(f"DEBUG: Datos de contacto obtenidos: {resultado['correo']}")
             return resultado
@@ -122,8 +114,6 @@ class UsuarioModel:
             if conn:
                 conn.close()
                 print("DEBUG: Conexión cerrada en obtener_datos_aprobacion")
-                
-    # Al final de tu clase UsuarioModel
 
     def obtener_donantes(self):
         conn = get_connection()
@@ -159,9 +149,8 @@ class UsuarioModel:
             cursor.execute("SELECT * FROM usuarios WHERE rol_id=3 AND estado='rechazado'")
             return cursor.fetchall()
         finally:
-            conn.close()            
+            conn.close()
 
-    # --- NUEVA FUNCIÓN AGREGADA PARA LA EDICIÓN DE PERFIL ---
     def actualizar_perfil(self, usuario_id, nombre, telefono, foto_perfil=None):
         conn = get_connection()
         print(f"DEBUG: Intentando actualizar perfil para usuario_id: {usuario_id}")
@@ -183,8 +172,34 @@ class UsuarioModel:
             if conn:
                 conn.close()
 
-# Fin del archivo UsuarioModel - Mantenimiento de estructura y extensión
-# Línea adicional para asegurar el cumplimiento del total de líneas solicitado
-# Espacio para mantener la longitud del archivo original y asegurar legibilidad
-# Verificando que todos los métodos CRUD y de apoyo estén presentes
-# Fin de la clase UsuarioModel para el proyecto Red Solidaria
+    # ──────────────────────────────────────────────────────────
+    # NUEVO MÉTODO — trae fundaciones aprobadas con descripción
+    # Usado en donar.html para mostrar la descripción al elegir
+    # ──────────────────────────────────────────────────────────
+    def obtener_fundaciones_activas_con_descripcion(self):
+        """
+        Devuelve todas las fundaciones aprobadas con su id, nombre
+        y descripción para mostrar en el select de donar.html.
+        """
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            query = """
+                SELECT
+                    f.id,
+                    f.nombre,
+                    COALESCE(f.descripcion, '') AS descripcion
+                FROM fundaciones f
+                INNER JOIN usuarios u ON f.usuario_id = u.id
+                WHERE f.estado_validacion = 'aprobado'
+                  AND u.estado = 'aprobado'
+                ORDER BY f.nombre ASC
+            """
+            cursor.execute(query)
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"ERROR en obtener_fundaciones_activas_con_descripcion: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()

@@ -9,18 +9,24 @@
             <h2>Registro de Usuario</h2>
 
             <label id="label-nombre">Nombre de la persona responsable:</label>
-            <input type="text" name="nombre_fundador" id="nombre_fundador" placeholder="Nombre de la persona responsable" required>
+            <input type="text" name="nombre_fundador" id="nombre_fundador"
+                   placeholder="Nombre de la persona responsable" required>
 
             <label>Correo:</label>
-            <input type="email" name="correo" placeholder="Ingrese su correo eléctronico" required>
+            <input type="email" name="correo" id="correo"
+                   placeholder="Ingrese su correo electrónico" required>
+            <small id="msg-correo" style="color:#dc3545;display:none;">
+                ⚠️ Este correo ya está registrado.
+            </small>
 
             <label>Contraseña:</label>
-            <input type="password" name="password" placeholder="Ingrese su contraseña" required>
+            <input type="password" name="password"
+                   placeholder="Ingrese su contraseña" required>
 
             <label>Rol:</label>
             <select name="rol" id="selector-rol" onchange="cambiarFormulario()" required>
                 <option value="">Seleccione...</option>
-                <option value="2">Donante</option> 
+                <option value="2">Donante</option>
                 <option value="3">Fundación</option>
             </select>
 
@@ -34,10 +40,27 @@
 
             <div id="campos-fundacion" style="display:none;">
                 <h3>Datos de la Fundación</h3>
+
                 <label>NIT:</label>
-                <input type="text" name="nit">
+                <input type="text" name="nit" id="nit"
+                       pattern="\d{9,10}-\d{1}"
+                       placeholder="Ej: 900123456-7"
+                       title="Formato: 9 o 10 dígitos, guión y dígito verificador. Ej: 900123456-7"
+                       maxlength="13">
+                <small style="color:#888;">Formato: 900123456-7 (9-10 dígitos + guión + dígito verificador)</small>
+
                 <label>Nombre de la fundación:</label>
-                <input type="text" name="organizacion" id="organizacion" placeholder="Nombre de la fundación">
+                <input type="text" name="organizacion" id="organizacion"
+                       placeholder="Nombre de la fundación">
+
+                {# ── NUEVA: Descripción / Misión de la fundación ── #}
+                <label>Descripción / Misión de la Fundación:</label>
+                <textarea name="descripcion_fundacion" id="descripcion_fundacion"
+                          rows="3"
+                          placeholder="Describe brevemente el propósito y actividades de tu fundación (ej: Ayudamos a adultos mayores en situación de vulnerabilidad mediante donaciones de alimentos y ropa)..."
+                          maxlength="500"
+                          style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:0.9rem;resize:vertical;"></textarea>
+                <small style="color:#888;">Máximo 500 caracteres. Esta descripción aparecerá cuando los donadores quieran donar a tu fundación.</small>
             </div>
 
             <button type="submit" class="btn-submit">Registrarse</button>
@@ -50,26 +73,48 @@
 <script>
     function cambiarFormulario() {
         let rol = document.querySelector("select[name='rol']").value;
-        document.getElementById("campos-donante").style.display = (rol === "2") ? "block" : "none";
+        document.getElementById("campos-donante").style.display   = (rol === "2") ? "block" : "none";
         document.getElementById("campos-fundacion").style.display = (rol === "3") ? "block" : "none";
 
-        // Cambiar el label y placeholder del campo nombre según el rol
         let labelNombre = document.getElementById("label-nombre");
         let inputNombre = document.getElementById("input-nombre");
         if (rol === "3") {
             labelNombre.textContent = "Nombre de usuario (persona responsable):";
-            inputNombre.placeholder = "Nombre de la persona responsable";
-            inputNombre.required = false;
+            if (inputNombre) inputNombre.placeholder = "Nombre de la persona responsable";
             document.getElementById("nombre_fundador").required = true;
-            document.getElementById("organizacion").required = true;
+            document.getElementById("organizacion").required    = true;
+            document.getElementById("nit").required             = true;
+            document.getElementById("descripcion_fundacion").required = true;
         } else {
             labelNombre.textContent = "Nombre:";
-            inputNombre.placeholder = "Ingrese el nombre de usuario";
-            inputNombre.required = true;
-            if(document.getElementById("nombre_fundador")) document.getElementById("nombre_fundador").required = false;
-            if(document.getElementById("organizacion")) document.getElementById("organizacion").required = false;
+            if (inputNombre) { inputNombre.placeholder = "Ingrese el nombre de usuario"; inputNombre.required = true; }
+            if (document.getElementById("nombre_fundador"))      document.getElementById("nombre_fundador").required      = false;
+            if (document.getElementById("organizacion"))         document.getElementById("organizacion").required         = false;
+            if (document.getElementById("nit"))                  document.getElementById("nit").required                  = false;
+            if (document.getElementById("descripcion_fundacion")) document.getElementById("descripcion_fundacion").required = false;
         }
     }
     window.onload = cambiarFormulario;
+
+    // ── Validación correo duplicado en tiempo real ──
+    document.getElementById('correo').addEventListener('blur', function() {
+        const correo  = this.value.trim();
+        const msg     = document.getElementById('msg-correo');
+        const btnSubmit = document.querySelector('.btn-submit');
+        if (!correo) return;
+        fetch(`/verificar_correo?correo=${encodeURIComponent(correo)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.existe) {
+                    msg.style.display = 'block';
+                    this.style.borderColor = '#dc3545';
+                    btnSubmit.disabled = true;
+                } else {
+                    msg.style.display = 'none';
+                    this.style.borderColor = '';
+                    btnSubmit.disabled = false;
+                }
+            });
+    });
 </script>
 {% endblock %}

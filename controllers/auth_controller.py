@@ -37,6 +37,7 @@ class AuthController:
             session["usuario_id"] = usuario['id']
             session["rol"] = int(usuario['rol_id'])
             # Guardar siempre el nombre de la persona, no el de la fundación
+            session["correo"] = usuario.get('correo', '')
             session["nombre"] = usuario.get('nombre_usuario', usuario['nombre'])
             session["telefono"] = usuario.get('telefono')
             

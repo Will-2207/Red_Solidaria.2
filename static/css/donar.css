@@ -134,3 +134,14 @@ footer {
 .volver:hover{
     text-decoration: underline;
 }
+
+/* Fix footer — evita que ocupe espacio extra */
+footer.bg-dark {
+    flex-shrink: 0 !important;
+    padding: 12px 20px !important;
+}
+footer.bg-dark h6,
+footer.bg-dark p {
+    margin-bottom: 2px !important;
+    font-size: 0.8rem !important;
+}

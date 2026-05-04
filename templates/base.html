@@ -2,9 +2,8 @@
 
 {% block body_content %}
 
-{# ── CSS GLOBAL — dentro del bloque para que layout.html lo procese ── #}
 <style>
-    /* ── BOTÓN REPORTE ADMIN EN NAVBAR ── */
+    /* ── BOTÓN REPORTE ADMIN NAVBAR ── */
     .btn-reporte-nav {
         background: linear-gradient(135deg, #ffd700, #ff8c00) !important;
         color: #000 !important;
@@ -13,7 +12,7 @@
         padding: 8px 20px !important;
         border-radius: 10px !important;
         font-size: 0.9rem !important;
-        box-shadow: 0 3px 12px rgba(255, 200, 0, 0.5) !important;
+        box-shadow: 0 3px 12px rgba(255,200,0,0.5) !important;
         transition: all 0.3s ease !important;
         white-space: nowrap !important;
         cursor: pointer !important;
@@ -24,38 +23,156 @@
     }
     .btn-reporte-nav:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(255, 200, 0, 0.65) !important;
+        box-shadow: 0 6px 20px rgba(255,200,0,0.65) !important;
         background: linear-gradient(135deg, #ffe733, #ffa500) !important;
         color: #000 !important;
         text-decoration: none !important;
     }
 
-    /* ── PERFIL FLOTANTE ── */
-    .floating-profile-panel {
-        position: fixed; top: 50%; right: 50px;
-        transform: translateY(-50%);
-        width: 340px; background: #fff;
+    /* ── NAV LINK GRADIENTE ── */
+    .nav-link-gradiente {
+        background: linear-gradient(135deg, #7b2ff7 0%, #4a90d9 50%, #43c98a 100%);
+        color: #fff !important;
+        font-weight: 600;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .nav-link-gradiente:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        color: #fff !important;
+        text-decoration: none !important;
+    }
+
+    /* ══ POPUP ESTILO GOOGLE ══ */
+    #googlePopupBackdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        background: transparent;
+    }
+    #googleAccountPopup {
+        display: none;
+        position: fixed;
+        top: 64px;
+        right: 18px;
+        width: 320px;
+        background: #fff;
         border-radius: 18px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-        z-index: 2000; padding: 24px 20px;
-        max-height: 60vh; overflow-y: auto;
-        display: flex; flex-direction: column;
-        align-items: center; border: 1px solid #e1e4e8;
-        animation: fadeInPerfilPanel 0.2s;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.10);
+        z-index: 3100;
+        overflow: hidden;
+        animation: popupFadeIn 0.18s ease;
+        border: 1px solid #e8e8e8;
     }
-    @keyframes fadeInPerfilPanel {
-        from { opacity: 0; right: 0; }
-        to   { opacity: 1; right: 50px; }
+    @keyframes popupFadeIn {
+        from { opacity:0; transform:translateY(-10px) scale(0.97); }
+        to   { opacity:1; transform:translateY(0) scale(1); }
     }
-    @media (max-width: 600px) {
-        .floating-profile-panel { right: 0; width: 98vw; border-radius: 0; }
+    .gp-header {
+        padding: 22px 20px 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+        position: relative;
+        background: #fafafa;
     }
-    #perfilModalBackdrop {
-        position: fixed; top: 0; left: 0;
-        width: 100vw; height: 100vh;
-        background: rgba(0,0,0,0.18);
-        z-index: 1999; display: none;
+    .gp-close {
+        position: absolute; top: 12px; right: 14px;
+        background: none; border: none; font-size: 1rem;
+        color: #888; cursor: pointer; padding: 4px 7px;
+        border-radius: 50%; transition: background 0.2s;
     }
+    .gp-close:hover { background: #efefef; color: #333; }
+
+    /* Avatar — puede ser imagen o inicial */
+    .gp-avatar-circle {
+        width: 78px; height: 78px; border-radius: 50%;
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: 800; font-size: 2rem;
+        border: 3px solid #e0e0e0; margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(106,17,203,0.25);
+        overflow: hidden;
+    }
+    .gp-avatar-circle img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    .gp-saludo { font-size: 1rem; font-weight: 700; color: #202124; margin-bottom: 2px; }
+    .gp-email  { font-size: 0.82rem; color: #777; margin-bottom: 6px; }
+    .gp-rol-badge {
+        font-size: 0.72rem; font-weight: 700; padding: 3px 14px;
+        border-radius: 20px; margin-top: 2px; letter-spacing:.04em;
+        text-transform: uppercase;
+    }
+    .gp-rol-admin     { background: #ffd700; color: #000; }
+    .gp-rol-donador   { background: #1e52ff; color: #fff; }
+    .gp-rol-fundacion { background: #00c97a; color: #fff; }
+    .gp-body {
+        padding: 8px 14px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .gp-info-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 8px; border-radius: 8px;
+        font-size: 0.84rem; color: #444;
+    }
+    .gp-info-row i { color: #aaa; width: 16px; text-align: center; }
+    .gp-btn-perfil {
+        display: block; width: calc(100% - 28px);
+        margin: 12px 14px 4px; padding: 9px;
+        text-align: center; border: 1.5px solid #dadce0;
+        border-radius: 22px; color: #1a73e8; font-weight: 600;
+        font-size: 0.88rem; text-decoration: none;
+        transition: background 0.2s, border-color 0.2s;
+        background: transparent;
+    }
+    .gp-btn-perfil:hover { background: #f0f4ff; border-color: #1a73e8; color: #1a73e8; text-decoration: none; }
+    .gp-footer { padding: 8px 14px 14px; display: flex; justify-content: center; }
+    .gp-btn-salir {
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 32px; border: 1.5px solid #dadce0;
+        border-radius: 22px; color: #d93025; font-weight: 600;
+        font-size: 0.88rem; text-decoration: none;
+        transition: background 0.2s; background: transparent;
+    }
+    .gp-btn-salir:hover { background: #fff0f0; border-color: #d93025; color: #d93025; text-decoration: none; }
+
+    /* Botón cuenta navbar */
+    .btn-google-account {
+        background: none; border: 1.5px solid #e0e0e0;
+        cursor: pointer; display: flex; align-items: center;
+        gap: 8px; border-radius: 30px; padding: 4px 12px 4px 4px;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    .btn-google-account:hover { background: #f5f5ff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    /* Avatar mini navbar */
+    .avatar-mini {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: 800; font-size: 0.9rem;
+        overflow: hidden;
+    }
+    .avatar-mini img {
+        width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    }
+    .account-name { font-weight: 600; font-size: 0.88rem; color: #333; }
 </style>
 
     <nav class="navbar navbar-expand-lg navbar-custom shadow-sm bg-white">
@@ -63,55 +180,48 @@
             <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('inicio') }}">
                 <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo Red Solidaria" class="logo-responsive" style="height: 50px;">
             </a>
-
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
             <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="navbar-nav me-auto mb-2 mb-lg-0 gap-2">
 
     {% if session.get('usuario_id') %}
-
-        {# DONADOR (ROL 2) #}
         {% if session.get('rol') == 2 or session.get('rol') == '2' %}
-            <a href="{{ url_for('home_donador') }}" class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
-            <a href="{{ url_for('donar') }}" class="nav-link nav-link-gradiente">🎁 Donar</a>
-
-        {# FUNDACIÓN (ROL 3) #}
+            <a href="{{ url_for('home_donador') }}"  class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
+            <a href="{{ url_for('donar') }}"          class="nav-link nav-link-gradiente">🎁 Donar</a>
         {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
-            <a href="{{ url_for('home_fundacion') }}" class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
+            <a href="{{ url_for('home_fundacion') }}"  class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
             <a href="{{ url_for('solicitar_ayuda') }}" class="nav-link nav-link-gradiente">📤 Solicitar Ayuda</a>
-
-        {# ADMIN (ROL 1) — botón Admin + botón Reporte Admin dorado #}
         {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
             <a href="{{ url_for('home_administrador') }}" class="nav-link nav-link-gradiente">🛡️ Admin</a>
-            <a href="{{ url_for('reporte_admin') }}" class="btn-reporte-nav">📊 Reporte Admin</a>
+            <a href="{{ url_for('reporte_admin') }}"      class="nav-link nav-link-gradiente">📊 Reporte Admin</a>
         {% endif %}
-
     {% else %}
-        <a href="{{ url_for('inicio') }}" class="nav-link nav-link-gradiente">🏠 Inicio</a>
+        <a href="{{ url_for('inicio') }}"   class="nav-link nav-link-gradiente">🏠 Inicio</a>
         <a href="{{ url_for('registro') }}" class="nav-link nav-link-gradiente">🎁 ¡Dona Ahora!</a>
     {% endif %}
 
                 </div>
 
-                <div class="navbar-nav ms-auto gap-2">
+                {# ── BOTÓN CUENTA ── #}
+                <div class="navbar-nav ms-auto gap-2 align-items-center">
                     {% if session.get('nombre') %}
-                        <div class="dropdown">
-                            <button class="nav-link nav-link-gradiente dropdown-toggle fw-bold"
-                                    data-bs-toggle="dropdown"
-                                    style="border: none !important; color: rgb(57, 107, 194) !important;">
-                                👤 {{ session['nombre'] }}
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg">
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="offcanvas" data-bs-target="#perfilSidebar">👤 Ver Perfil</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger fw-bold" href="{{ url_for('logout') }}">🚪 Cerrar Sesión</a></li>
-                            </ul>
+                    <button class="btn-google-account" id="btnGoogleAccount" onclick="toggleGooglePopup(event)">
+                        <div class="avatar-mini">
+                            {# Solo admin muestra foto si la tiene #}
+                            {% if (session.get('rol') == 1 or session.get('rol') == '1') and session.get('foto_perfil') %}
+                                <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}"
+                                     alt="Foto Admin">
+                            {% else %}
+                                {{ session['nombre'][0]|upper }}
+                            {% endif %}
                         </div>
+                        <span class="account-name">{{ session['nombre'].split(' ')[0] }}</span>
+                        <i class="fas fa-chevron-down" style="font-size:0.65rem;color:#aaa;margin-left:2px;"></i>
+                    </button>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="nav-link nav-link-gradiente fw-bold" style="color: #6366f1 !important;">
+                        <a href="{{ url_for('login') }}" class="nav-link nav-link-gradiente fw-bold">
                             🔑 Iniciar Sesión
                         </a>
                     {% endif %}
@@ -120,65 +230,63 @@
         </div>
     </nav>
 
-    <!-- Sidebar Offcanvas Perfil -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="perfilSidebar" style="max-width: 340px;">
-        <div class="d-flex flex-column justify-content-center align-items-center h-100" style="min-height: 320px; max-height: 420px; margin-top: 60px; margin-bottom: 60px;">
-            <div class="offcanvas-header border-bottom w-100" style="border: none !important;">
-                <div class="d-flex align-items-center gap-2 w-100">
-                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border: 2px solid #e1e4e8;">
-                        <i class="fa fa-user" style="font-size: 2rem; color: #3b82f6;"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size: 1.15rem;">{{ session['nombre'] }}</div>
-                        <div class="text-muted small">Usuario registrado</div>
-                    </div>
-                    <button type="button" class="btn-close ms-2" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-                </div>
-            </div>
-            <div class="offcanvas-body px-0 pt-3 pb-0 w-100" style="flex: none;">
-                <ul class="list-unstyled mb-0">
-                    <li class="px-4 py-2 d-flex align-items-center gap-2">
-                        <i class="fa fa-id-card text-primary"></i>
-                        <span><strong>Nombre:</strong> {{ session['nombre'] }}</span>
-                    </li>
-                    <li class="px-4 py-2 d-flex align-items-center gap-2">
-                        <i class="fa fa-phone text-success"></i>
-                        <span><strong>Contacto:</strong> {{ session['telefono'] if session.get('telefono') else 'No registrado' }}</span>
-                    </li>
-                </ul>
-            </div>
-            <div class="offcanvas-footer p-3 border-top w-100" style="border: none !important;">
-                <a href="{{ url_for('editar_perfil') }}" class="btn btn-outline-primary w-100 mb-2">Editar Perfil Fundación</a>
-                <button type="button" class="btn btn-light w-100" data-bs-dismiss="offcanvas">Cerrar</button>
-            </div>
-        </div>
-    </div>
+    {# ══ POPUP ESTILO GOOGLE ══ #}
+    {% if session.get('nombre') %}
+    <div id="googlePopupBackdrop" onclick="cerrarGooglePopup()"></div>
+    <div id="googleAccountPopup">
 
-    <!-- Floating Panel Perfil -->
-    <div id="perfilFloatingPanel" class="floating-profile-panel" style="display:none;">
-        <div class="d-flex align-items-center gap-2 mb-3 w-100">
-            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; border: 2px solid #e1e4e8;">
-                <i class="fa fa-user" style="font-size: 2rem; color: #3b82f6;"></i>
+        <div class="gp-header">
+            <button class="gp-close" onclick="cerrarGooglePopup()">✕</button>
+
+            {# Avatar del popup — foto real solo para admin #}
+            <div class="gp-avatar-circle">
+                {% if (session.get('rol') == 1 or session.get('rol') == '1') and session.get('foto_perfil') %}
+                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}"
+                         alt="Foto Admin">
+                {% else %}
+                    {{ session['nombre'][0]|upper }}
+                {% endif %}
             </div>
-            <div class="flex-grow-1">
-                <div class="fw-bold" style="font-size: 1.15rem;">{{ session['nombre'] }}</div>
-                <div class="text-muted small">Usuario registrado</div>
-            </div>
-            <button type="button" class="btn-close ms-2" id="cerrarPerfilPanel" aria-label="Cerrar"></button>
+
+            <div class="gp-saludo">¡Hola, {{ session['nombre'].split(' ')[0] }}!</div>
+            {% if session.get('correo') %}
+            <div class="gp-email">{{ session['correo'] }}</div>
+            {% endif %}
+
+            {% if session.get('rol') == 1 or session.get('rol') == '1' %}
+                <span class="gp-rol-badge gp-rol-admin">🛡️ Administrador</span>
+            {% elif session.get('rol') == 2 or session.get('rol') == '2' %}
+                <span class="gp-rol-badge gp-rol-donador">🙋 Donador</span>
+            {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
+                <span class="gp-rol-badge gp-rol-fundacion">🏛️ Fundación</span>
+            {% endif %}
         </div>
-        <ul class="list-unstyled mb-3 w-100">
-            <li class="px-2 py-2 d-flex align-items-center gap-2">
-                <i class="fa fa-id-card text-primary"></i>
-                <span><strong>Nombre:</strong> {{ session['nombre'] }}</span>
-            </li>
-            <li class="px-2 py-2 d-flex align-items-center gap-2">
-                <i class="fa fa-phone text-success"></i>
-                <span><strong>Contacto:</strong> {{ session['telefono'] if session.get('telefono') else 'No registrado' }}</span>
-            </li>
-        </ul>
-        <a href="{{ url_for('editar_perfil') }}" class="btn btn-outline-primary w-100 mb-2">Editar Perfil Fundación</a>
-        <button type="button" class="btn btn-light w-100" id="cerrarPerfilPanel2">Cerrar</button>
+
+        <div class="gp-body">
+            <div class="gp-info-row">
+                <i class="fas fa-user"></i>
+                <span>{{ session['nombre'] }}</span>
+            </div>
+            {% if session.get('telefono') %}
+            <div class="gp-info-row">
+                <i class="fas fa-phone"></i>
+                <span>{{ session['telefono'] }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <a href="{{ url_for('editar_perfil') }}" class="gp-btn-perfil" onclick="cerrarGooglePopup()">
+            ✏️ Administrar mi Cuenta
+        </a>
+
+        <div class="gp-footer">
+            <a href="{{ url_for('logout') }}" class="gp-btn-salir">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+        </div>
+
     </div>
+    {% endif %}
 
     <main style="padding-top: 20px; min-height: 70vh;">
         {% block content %}{% endblock %}
@@ -189,40 +297,44 @@
             <h6 class="fw-bold mb-2">Red Solidaria</h6>
             <p class="small mb-2">Conectando solidaridad con quienes más lo necesitan</p>
             <p class="mb-2">
-                <a href="mailto:soporte@redsolidaria.com" style="font-size: 1rem; color: #0000FF; text-decoration: underline; font-weight: 500;">
+                <a href="mailto:soporte@redsolidaria.com" style="font-size:1rem;color:#0000FF;text-decoration:underline;font-weight:500;">
                     soporte@redsolidaria.com
                 </a>
             </p>
-            <p class="xsmall mb-0" style="font-size: 0.75rem; opacity: 0.8;">© 2026 Red Solidaria - Uniendo Corazones</p>
+            <p class="xsmall mb-0" style="font-size:0.75rem;opacity:0.8;">© 2026 Red Solidaria - Uniendo Corazones</p>
         </div>
     </footer>
 
     {% block scripts %}{% endblock %}
 
-<div id="perfilModalBackdrop"></div>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var btn      = document.getElementById('btnVerPerfil');
-        var panel    = document.getElementById('perfilFloatingPanel');
-        var close1   = document.getElementById('cerrarPerfilPanel');
-        var close2   = document.getElementById('cerrarPerfilPanel2');
-        var backdrop = document.getElementById('perfilModalBackdrop');
-
-        function showPanel(e) { e.preventDefault(); panel.style.display = 'flex'; }
-        function hidePanel()  { panel.style.display = 'none'; }
-
-        btn      && btn.addEventListener('click', showPanel);
-        close1   && close1.addEventListener('click', hidePanel);
-        close2   && close2.addEventListener('click', hidePanel);
-        backdrop && backdrop.addEventListener('click', hidePanel);
-
-        document.addEventListener('mousedown', function (e) {
-            if (panel && panel.style.display === 'flex' && !panel.contains(e.target) && e.target !== btn)
-                panel.style.display = 'none';
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') hidePanel();
-        });
+    function toggleGooglePopup(e) {
+        e.stopPropagation();
+        const popup    = document.getElementById('googleAccountPopup');
+        const backdrop = document.getElementById('googlePopupBackdrop');
+        const abierto  = popup && popup.style.display === 'block';
+        if (abierto) {
+            cerrarGooglePopup();
+        } else {
+            if (popup)    popup.style.display    = 'block';
+            if (backdrop) backdrop.style.display = 'block';
+        }
+    }
+    function cerrarGooglePopup() {
+        const popup    = document.getElementById('googleAccountPopup');
+        const backdrop = document.getElementById('googlePopupBackdrop');
+        if (popup)    popup.style.display    = 'none';
+        if (backdrop) backdrop.style.display = 'none';
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarGooglePopup(); });
+    document.addEventListener('click', function(e) {
+        const popup = document.getElementById('googleAccountPopup');
+        const btn   = document.getElementById('btnGoogleAccount');
+        if (popup && popup.style.display === 'block'
+            && !popup.contains(e.target)
+            && btn && !btn.contains(e.target)) {
+            cerrarGooglePopup();
+        }
     });
 </script>
 
