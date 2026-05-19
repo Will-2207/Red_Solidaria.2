@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0" style="border-radius: 15px;">
+                <div class="card-header bg-primary text-white text-center" style="border-radius: 15px 15px 0 0;">
+                    <h4 class="mb-0">🎧 Crear Ticket de Soporte</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form id="formSoporte">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Asunto</label>
+                            <input type="text" name="asunto" class="form-control" placeholder="Ej: No puedo ver mi certificado" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Categoría</label>
+                                <select name="categoria" class="form-select" required>
+                                    <option value="Tecnico">Error Técnico</option>
+                                    <option value="Pagos">Problema con Pagos</option>
+                                    <option value="Donaciones">Duda sobre Donaciones</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">ID Transacción (Opcional)</label>
+                                <input type="text" name="id_transaccion" class="form-control" placeholder="Si aplica">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Prioridad de la Incidencia</label>
+                            <select name="prioridad" class="form-select" required>
+                                <option value="Baja">Baja - Consulta general</option>
+                                <option value="Media">Media - Error en una función</option>
+                                <option value="Alta" selected>Alta - No puedo usar la plataforma</option>
+                                <option value="Urgente">Urgente - Bloqueo total de cuenta</option>
+                            </select>
+                            <div class="form-text">Indica qué tan rápido necesitas ayuda.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Descripción del Problema</label>
+                            <textarea name="descripcion" class="form-control" rows="4" placeholder="Describe detalladamente lo que sucede..." required></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Enviar Incidencia</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .borde-personalizado {
+        border: 4px solid #20c997 !important;
+        border-radius: 20px !important;
+    }
+</style>
+
+<script>
+document.getElementById('formSoporte').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    fetch('/enviar_incidencia', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            Swal.fire({
+                title: '<h2 style="color: #1a3a5a;">¡Solicitud Recibida!</h2>',
+                html: `
+                    <p style="font-size: 1.1rem; color: #555;">Guarda tu código de seguimiento:</p>
+                    <b style="font-size: 1.4rem; color: #007bff; display: block; margin-top: 10px;">${data.token}</b>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#20c997',
+                background: '#ffffff',
+                customClass: {
+                    popup: 'borde-personalizado'
+                }
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

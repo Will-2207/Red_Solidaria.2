@@ -235,11 +235,12 @@
                     <select id="f_estado" class="form-select form-select-sm">
                         <option value="">Todos</option>
                         <option value="pendiente">Pendiente</option>
-                        <option value="aceptada">Aceptada (donación)</option>
+                        <option value="recibido">Aceptada (donación)</option>
                         <option value="rechazada">Rechazada (donación)</option>
                         <option value="eliminada">Eliminada (donación)</option>
                         <option value="aprobado">Aprobado (fundación)</option>
                         <option value="rechazado">Rechazado (fundación)</option>
+                        <option value="eliminado">Eliminado (fundación)</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -423,6 +424,7 @@
             rechazado:  'background:#dc3545;color:#fff;',
             aprobado:   'background:#198754;color:#fff;',
             eliminada:  'background:#6c757d;color:#fff;',
+            eliminado:  'background:#6c757d;color:#fff;',
         };
         const style = map[estado.toLowerCase()] || 'background:#6c757d;color:#fff;';
         return `<span class="badge-estado" style="${style}">${estado}</span>`;

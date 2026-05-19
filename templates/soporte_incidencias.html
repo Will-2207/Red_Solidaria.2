@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .ticket-wrapper { background: #f8f9fa; border-radius: 15px; padding: 30px; border-left: 10px solid #6c757d; }
+        .ticket-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; }
+        .ticket-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+        .status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; }
+        .token-id { font-family: monospace; color: #e83e8c; font-weight: bold; }
+        .search-section { background: #e9ecef; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="ticket-wrapper">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🛠️ Gestión de Soporte Red Solidaria</h2>
+            <a href="{{ url_for('home_administrador') }}" class="btn btn-outline-secondary">Volver al Panel</a>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center p-3 border-warning">
+                    <h1 class="text-warning">{{ incidencias_abiertas }}</h1>
+                    <p class="text-muted mb-0 fw-bold">PENDIENTES</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center p-3 border-success">
+                    <h1 class="text-success">{{ incidencias_resueltas }}</h1>
+                    <p class="text-muted mb-0 fw-bold">RESUELTAS</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center p-3 border-primary">
+                    <h1 class="text-primary">{{ total_incidencias }}</h1>
+                    <p class="text-muted mb-0 fw-bold">TOTAL TICKETS</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section shadow-sm">
+            <h5 class="mb-3"><i class="fas fa-search"></i> Historial y Búsqueda de Incidencias</h5>
+            <form action="{{ url_for('soporte_incidencias') }}" method="GET" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Buscar por Token o ID (#)</label>
+                    <input type="text" name="buscar_token" class="form-control" placeholder="Ej: 550e8400...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Filtrar por Estado</label>
+                    <select name="filtro_estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="abierto">Pendientes (Abiertos)</option>
+                        <option value="resuelto">Resueltos</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-dark w-100">
+                        <i class="fas fa-filter"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="ticket-list">
+                    {% for ticket in incidencias %}
+                        <div class="ticket-card d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="token-id">#{{ ticket.token }}</span>
+                                <h5 class="mt-2 text-capitalize">Asunto: {{ ticket.tipo_incidencia|replace('_', ' ') }}</h5>
+                                <p class="mb-1 text-secondary">{{ ticket.descripcion }}</p>
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-alt"></i> Fecha de reporte: {{ ticket.fecha_reporte }}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="status-badge {% if ticket.estado == 'abierto' or ticket.estado == 'en_progreso' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}">
+                                    {{ ticket.estado|upper }}
+                                </span>
+                                
+                                <div class="mt-2">
+                                    {% if ticket.estado == 'abierto' or ticket.estado == 'en_progreso' %}
+                                        <a href="{{ url_for('gestion_ticket', id=ticket.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-edit"></i> Gestionar
+                                        </a>
+                                    {% else %}
+                                        <div class="d-flex flex-column align-items-end">
+                                            <span class="text-success small fw-bold mb-1">
+                                                <i class="fas fa-check-double"></i> ATENDIDO
+                                            </span>
+                                            <a href="{{ url_for('gestion_ticket', id=ticket.id) }}" class="btn btn-sm btn-outline-info">
+                                                Ver Detalle
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5 bg-white rounded shadow-sm">
+                            <i class="fas fa-search-minus fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No se encontraron tickets con esos criterios de búsqueda.</p>
+                        </div>
+                        {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page { margin: 0; }
+        body { 
+            font-family: 'Helvetica', Arial, sans-serif; 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #fdfdf5; 
+        }
+        
+        /* HEADER CON DEGRADADO */
+        .header {
+            background: linear-gradient(90deg, #6a11cb 0%, #2575fc 50%, #00ff88 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header img { width: 120px; margin-bottom: 15px; background: white; padding: 10px; border-radius: 10px; }
+        .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+        .header p { margin: 5px 0 0; opacity: 0.9; font-size: 14px; }
+
+        .container { padding: 30px; }
+
+        /* RESUMEN DE FILTROS */
+        .filtros-info {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 12px;
+        }
+        .filtros-info h3 { margin: 0 0 10px 0; color: #1e52ff; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        
+        /* TABLAS ESTILIZADAS */
+        .section-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: white; 
+            background: #1e52ff; 
+            padding: 10px 15px; 
+            border-radius: 5px 5px 0 0;
+            margin-top: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: white; }
+        th { background-color: #f0f4ff; color: #333; font-weight: bold; text-align: left; padding: 10px; font-size: 11px; border-bottom: 2px solid #1e52ff; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 11px; color: #444; }
+        tr:nth-child(even) { background-color: #fafafa; }
+
+        /* BADGES DE ESTADO */
+        .badge {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .estado-pendiente { background: #fff3cd; color: #856404; }
+        .estado-aceptado { background: #d1e7dd; color: #0a58ca; }
+        
+        .footer {
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Reporte Administrativo</h1>
+        <p>Red Solidaria - Uniendo Corazones</p>
+        <p>Generado el: {{ fecha }}</p>
+    </div>
+
+    <div class="container">
+        
+        <div class="filtros-info">
+            <h3>🔍 Filtros Aplicados en esta Búsqueda</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <span><strong>Donante:</strong> {{ filtros.donante or 'Todos' }}</span>
+                <span><strong>Fundación:</strong> {{ filtros.fundacion or 'Todas' }}</span>
+                <span><strong>Estado:</strong> {{ filtros.estado or 'Todos' }}</span>
+                <span><strong>Rango:</strong> {{ filtros.fecha_desde or 'Inicio' }} hasta {{ filtros.fecha_hasta or 'Fin' }}</span>
+            </div>
+        </div>
+
+        <div class="section-title">📦 Reporte de Donaciones Físicas</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Donante</th>
+                    <th>Fundación Destino</th>
+                    <th>Categoría</th>
+                    <th>Cantidad</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in datos.donaciones %}
+                <tr>
+                    <td><strong>{{ d.donador_nombre }}</strong></td>
+                    <td>{{ d.fundacion_nombre }}</td>
+                    <td>{{ d.categoria_nombre }}</td>
+                    <td>{{ d.cantidad }}</td>
+                    <td>{{ d.fecha }}</td>
+                    <td>{{ d.estado }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;">No se encontraron registros</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="section-title">🏛️ Reporte de Fundaciones</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>NIT</th>
+                    <th>Correo</th>
+                    <th>Fecha Registro</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in datos.fundaciones %}
+                <tr>
+                    <td>{{ f.nombre }}</td>
+                    <td>{{ f.nit }}</td>
+                    <td>{{ f.correo }}</td>
+                    <td>{{ f.fecha_registro }}</td>
+                    <td>{{ f.estado_validacion }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <div class="footer">
+        © 2026 Red Solidaria - Este es un documento oficial generado automáticamente.
+    </div>
+
+</body>
+</html>

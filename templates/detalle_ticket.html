@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            {# ticket[9] es el t.token de tu JOIN #}
+            <span>Detalle del Ticket #{{ ticket[9] }}</span> 
+            
+            {# ticket[7] es el i.estado de tu SELECT i.* #}
+            <span class="badge {% if ticket[7] == 'abierto' or ticket[7] == 'en_progreso' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                {{ ticket[7]|upper }}
+            </span>
+        </div>
+        <div class="card-body">
+            {# ticket[10] es el u.nombre y ticket[5] es el tipo_incidencia #}
+            <p><strong>Usuario:</strong> {{ ticket[10] }}</p>
+            
+            {# MODIFICADO: Validación segura para evitar que se muestre en blanco si en la DB viene vacío '' #}
+            <p><strong>Tipo:</strong> 
+                {% if ticket[5] and ticket[5].strip() != '' %}
+                    {{ ticket[5]|replace('_', ' ') }}
+                {% else %}
+                    <span class="text-muted">No especificado</span>
+                {% endif %}
+            </p>
+            <hr>
+            
+            <h5>Descripción del Problema:</h5>
+            <p class="p-3 bg-light border rounded">{{ ticket[6] }}</p>
+            
+            {# --- LÓGICA DE GESTIÓN --- #}
+            {# Cambié 'pendiente' por 'abierto' porque así está en tu DB #}
+            {% if ticket[7] == 'abierto' or ticket[7] == 'en_progreso' %}
+                <form action="{{ url_for('resolver_ticket', id=ticket[0]) }}" method="POST" class="mt-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Respuesta para el usuario:</label>
+                        <textarea name="respuesta" class="form-control" rows="4" required placeholder="Escribe aquí la solución técnica..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane"></i> Enviar Respuesta y Cerrar Ticket
+                        </button>
+                        <a href="{{ url_for('soporte_incidencias') }}" class="btn btn-secondary">Volver</a>
+                    </div>
+                </form>
+            {% else %}
+                <div class="alert alert-success mt-4">
+                    <i class="fas fa-check-circle"></i> Esta incidencia ya ha sido resuelta y el correo fue enviado.
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('soporte_incidencias') }}" class="btn btn-secondary">Volver a la lista</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

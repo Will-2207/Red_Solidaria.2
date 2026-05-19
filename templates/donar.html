@@ -100,10 +100,12 @@
         </div>
         {% endif %}
 
-        <form method="POST"
-              action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else None) }}"
-              class="needs-validation"
-              enctype="multipart/form-data">
+        <form method="POST" 
+                {# Línea corregida #}
+                action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else 0) }}" 
+                class="needs-validation" 
+                enctype="multipart/form-data" 
+                novalidate>
 
             {# ── Fundación Destino ── #}
             <div class="mb-3">

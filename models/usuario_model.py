@@ -69,20 +69,26 @@ class UsuarioModel:
 
     def obtener_fundacion_por_usuario(self, usuario_id):
         conn = get_connection()
-        print(f"DEBUG: Buscando fundación para usuario_id: {usuario_id}")
         try:
             cursor = conn.cursor(dictionary=True)
+            # MODIFICADO: Aseguramos la selección explícita de f.id, f.usuario_id y u.correo
             query = '''
-                SELECT f.*, u.estado as estado_usuario, f.estado_validacion, u.foto_perfil
+                SELECT f.id, f.usuario_id, f.nombre, f.nit, f.descripcion, f.telefono, 
+                       u.foto_perfil, u.estado as estado_usuario, f.estado_validacion,
+                       u.nombre AS usuario_encargado, u.correo
                 FROM fundaciones f
                 JOIN usuarios u ON f.usuario_id = u.id
                 WHERE f.usuario_id = %s
             '''
             cursor.execute(query, (usuario_id,))
             resultado = cursor.fetchone()
+            
             if resultado:
-                print(f"DEBUG: Fundación encontrada: {resultado['nombre']}")
-            return resultado
+                print(f"DEBUG: Fundación encontrada: {resultado['nombre']} con ID Interno: {resultado['id']}")
+                return resultado
+            
+            return None
+                
         except Exception as e:
             print(f"ERROR en obtener_fundacion_por_usuario: {e}")
             return None
@@ -90,7 +96,8 @@ class UsuarioModel:
             if conn:
                 conn.close()
                 print("DEBUG: Conexión cerrada en obtener_fundacion")
-
+                
+                
     def obtener_datos_aprobacion(self, fundacion_id):
         conn = get_connection()
         print(f"DEBUG: Buscando datos de correo para aprobación de fundacion_id: {fundacion_id}")
@@ -151,27 +158,39 @@ class UsuarioModel:
         finally:
             conn.close()
 
-    def actualizar_perfil(self, usuario_id, nombre, telefono, foto_perfil=None):
+    def actualizar_perfil_fundacion(self, usuario_id, nombre_fundacion, nombre_encargado, telefono, foto_perfil=None, rol=3):
         conn = get_connection()
-        print(f"DEBUG: Intentando actualizar perfil para usuario_id: {usuario_id}")
+        print(f"DEBUG: Intentando administrar cuenta para usuario_id: {usuario_id} con Rol: {rol}")
         try:
             cursor = conn.cursor()
+            
+            # 1. ACTUALIZAR TABLA GENERAL USUARIOS
+            # Si es Fundación (rol 3), guardamos el nombre del ENCARGADO en la cuenta de usuario general
+            nombre_a_guardar = nombre_encargado if int(rol) == 3 else nombre_fundacion
+
             if foto_perfil:
-                query = "UPDATE usuarios SET nombre = %s, telefono = %s, foto_perfil = %s WHERE id = %s"
-                cursor.execute(query, (nombre, telefono, foto_perfil, usuario_id))
+                query_usr = "UPDATE usuarios SET nombre = %s, telefono = %s, foto_perfil = %s WHERE id = %s"
+                cursor.execute(query_usr, (nombre_a_guardar, telefono, foto_perfil, usuario_id))
             else:
-                query = "UPDATE usuarios SET nombre = %s, telefono = %s WHERE id = %s"
-                cursor.execute(query, (nombre, telefono, usuario_id))
+                query_usr = "UPDATE usuarios SET nombre = %s, telefono = %s WHERE id = %s"
+                cursor.execute(query_usr, (nombre_a_guardar, telefono, usuario_id))
+
+            # 2. ACTUALIZAR TABLA ESPECÍFICA DE FUNDACIONES (Solo si es Rol 3)
+            # Corregido: Quitamos 'usuario_encargado' porque no existe en la estructura de tu tabla fundaciones
+            if int(rol) == 3:
+                query_fun = "UPDATE fundaciones SET nombre = %s, telefono = %s WHERE usuario_id = %s"
+                cursor.execute(query_fun, (nombre_fundacion, telefono, usuario_id))
+
             conn.commit()
-            print("DEBUG: Perfil actualizado correctamente")
+            print("DEBUG: Datos de perfil sincronizados en la Base de Datos con éxito.")
             return True
         except Exception as e:
-            print(f"ERROR en actualizar_perfil: {e}")
+            if conn: conn.rollback()
+            print(f"ERROR en actualizar_perfil_fundacion: {e}")
             return False
         finally:
             if conn:
                 conn.close()
-
     # ──────────────────────────────────────────────────────────
     # NUEVO MÉTODO — trae fundaciones aprobadas con descripción
     # Usado en donar.html para mostrar la descripción al elegir
@@ -203,3 +222,24 @@ class UsuarioModel:
         finally:
             if conn:
                 conn.close()
+                
+    
+                
+    def obtener_motivos_eliminacion(self):
+        return {
+            "normas":        "Incumplimiento de las normas y políticas de publicación de Red Solidaria.",
+            "contenido":     "Publicación de contenido falso, engañoso o fraudulento.",
+            "uso_indebido":  "Uso indebido de la plataforma para fines no autorizados.",
+            "documentacion": "Documentación legal incompleta o vencida.",
+            "nit_invalido":  "NIT inválido o no verificable ante la DIAN.",
+            "no_legal":      "La organización no está legalmente constituida en Colombia.",
+            "inactividad":   "Inactividad prolongada sin justificación (más de 90 días).",
+            "comportamiento":"Comportamiento inapropiado hacia donantes o usuarios de la plataforma.",
+            "reincidencia":  "Reincidencia en infracciones previamente notificadas.",
+            "transparencia": "Manejo inadecuado o no transparente de las donaciones recibidas.",
+            "incumplimiento":"Incumplimiento en la entrega o gestión de donaciones físicas.",
+            "sin_reporte":   "Falta de reporte sobre el destino de los recursos recibidos.",
+            "duplicada":     "Organización duplicada ya registrada en la plataforma.",
+            "suplantacion":  "Suplantación de identidad de otra fundación o entidad.",
+            "info_falsa":    "Información de contacto falsa o no verificable."
+        }            

@@ -111,7 +111,7 @@
             {% endwith %}
         </div>
 
-        {# ── FORMULARIO ── #}
+       {# ── FORMULARIO ── #}
         <div class="perfil-body">
             <form method="POST" action="{{ url_for('editar_perfil') }}" enctype="multipart/form-data">
 
@@ -122,10 +122,19 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">👤 Nombre Completo</label>
+                    <label class="form-label">🏢 Nombre de la Fundación / Usuario</label>
                     <input type="text" name="nombre" class="form-control"
                            value="{{ usuario.nombre if usuario else session.get('nombre', '') }}" required>
                 </div>
+
+                {# ── DETECTAMOS SI ES FUNDACIÓN (ROL 3) PARA MOSTRAR EL ENCARGADO ── #}
+                {% if session.get('rol') == 3 or session.get('rol') == '3' %}
+                <div class="mb-3">
+                    <label class="form-label">👤 Usuario Encargado (Responsable)</label>
+                    <input type="text" name="usuario_encargado" class="form-control"
+                           value="{{ fundacion.usuario_encargado if fundacion else session.get('usuario_encargado', '') }}" required>
+                </div>
+                {% endif %}
 
                 <div class="mb-4">
                     <label class="form-label">📞 Teléfono de Contacto</label>

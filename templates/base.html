@@ -96,7 +96,6 @@
     }
     .gp-close:hover { background: #efefef; color: #333; }
 
-    /* Avatar — puede ser imagen o inicial */
     .gp-avatar-circle {
         width: 78px; height: 78px; border-radius: 50%;
         background: linear-gradient(135deg, #6a11cb, #2575fc);
@@ -108,8 +107,7 @@
     }
     .gp-avatar-circle img {
         width: 100%; height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
+        object-fit: cover; border-radius: 50%;
     }
 
     .gp-saludo { font-size: 1rem; font-weight: 700; color: #202124; margin-bottom: 2px; }
@@ -122,6 +120,7 @@
     .gp-rol-admin     { background: #ffd700; color: #000; }
     .gp-rol-donador   { background: #1e52ff; color: #fff; }
     .gp-rol-fundacion { background: #00c97a; color: #fff; }
+
     .gp-body {
         padding: 8px 14px;
         border-bottom: 1px solid #f0f0f0;
@@ -132,6 +131,7 @@
         font-size: 0.84rem; color: #444;
     }
     .gp-info-row i { color: #aaa; width: 16px; text-align: center; }
+
     .gp-btn-perfil {
         display: block; width: calc(100% - 28px);
         margin: 12px 14px 4px; padding: 9px;
@@ -141,7 +141,11 @@
         transition: background 0.2s, border-color 0.2s;
         background: transparent;
     }
-    .gp-btn-perfil:hover { background: #f0f4ff; border-color: #1a73e8; color: #1a73e8; text-decoration: none; }
+    .gp-btn-perfil:hover {
+        background: #f0f4ff; border-color: #1a73e8;
+        color: #1a73e8; text-decoration: none;
+    }
+
     .gp-footer { padding: 8px 14px 14px; display: flex; justify-content: center; }
     .gp-btn-salir {
         display: flex; align-items: center; gap: 8px;
@@ -150,7 +154,10 @@
         font-size: 0.88rem; text-decoration: none;
         transition: background 0.2s; background: transparent;
     }
-    .gp-btn-salir:hover { background: #fff0f0; border-color: #d93025; color: #d93025; text-decoration: none; }
+    .gp-btn-salir:hover {
+        background: #fff0f0; border-color: #d93025;
+        color: #d93025; text-decoration: none;
+    }
 
     /* Botón cuenta navbar */
     .btn-google-account {
@@ -159,7 +166,10 @@
         gap: 8px; border-radius: 30px; padding: 4px 12px 4px 4px;
         transition: background 0.2s, box-shadow 0.2s;
     }
-    .btn-google-account:hover { background: #f5f5ff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .btn-google-account:hover {
+        background: #f5f5ff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
 
     /* Avatar mini navbar */
     .avatar-mini {
@@ -170,11 +180,26 @@
         overflow: hidden;
     }
     .avatar-mini img {
-        width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+        width: 100%; height: 100%;
+        object-fit: cover; border-radius: 50%;
     }
     .account-name { font-weight: 600; font-size: 0.88rem; color: #333; }
-</style>
 
+    @keyframes shake {
+    0% { transform: rotate(0); }
+    20% { transform: rotate(15deg); }
+    40% { transform: rotate(-15deg); }
+    60% { transform: rotate(10deg); }
+    80% { transform: rotate(-10deg); }
+    100% { transform: rotate(0); }
+    }
+    .shake-active {
+        display: inline-block !important;
+        animation: shake 0.5s ease-in-out infinite;
+    }
+
+</style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <nav class="navbar navbar-expand-lg navbar-custom shadow-sm bg-white">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('inicio') }}">
@@ -187,37 +212,64 @@
                 <div class="navbar-nav me-auto mb-2 mb-lg-0 gap-2">
 
     {% if session.get('usuario_id') %}
-        {% if session.get('rol') == 2 or session.get('rol') == '2' %}
-            <a href="{{ url_for('home_donador') }}"  class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
-            <a href="{{ url_for('donar') }}"          class="nav-link nav-link-gradiente">🎁 Donar</a>
-        {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
-            <a href="{{ url_for('home_fundacion') }}"  class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
-            <a href="{{ url_for('solicitar_ayuda') }}" class="nav-link nav-link-gradiente">📤 Solicitar Ayuda</a>
-        {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
-            <a href="{{ url_for('home_administrador') }}" class="nav-link nav-link-gradiente">🛡️ Admin</a>
-            <a href="{{ url_for('reporte_admin') }}"      class="nav-link nav-link-gradiente">📊 Reporte Admin</a>
-        {% endif %}
-    {% else %}
-        <a href="{{ url_for('inicio') }}"   class="nav-link nav-link-gradiente">🏠 Inicio</a>
-        <a href="{{ url_for('registro') }}" class="nav-link nav-link-gradiente">🎁 ¡Dona Ahora!</a>
+    {% if session.get('rol') == 2 or session.get('rol') == '2' %}
+        <a href="{{ url_for('home_donador') }}"  class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
+        <a href="{{ url_for('donar') }}"          class="nav-link nav-link-gradiente">🎁 Donar</a>
+    {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
+        <a href="{{ url_for('home_fundacion') }}"  class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
+        <a href="{{ url_for('solicitar_ayuda') }}" class="nav-link nav-link-gradiente">📤 Solicitar Ayuda</a>
+    {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
+        <a href="{{ url_for('home_administrador') }}" class="nav-link nav-link-gradiente">🛡️ Admin</a>
+        <a href="{{ url_for('reporte_admin') }}"       class="nav-link nav-link-gradiente">📊 Reporte Admin</a>
+        
+        <div style="display: inline-flex; align-items: center; position: relative;">
+            <a href="{{ url_for('soporte_incidencias') }}" class="nav-link nav-link-gradiente">🎧 Soporte</a>
+            
+            <div id="contNotif" style="position: relative; margin-left: 5px; display: none;">
+                <span id="badgeInc" style="position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; border: 1px solid white;">0</span>
+                <span id="campanaAnim" style="font-size: 18px;">🔔</span>
+                
+                <div id="msjIncidencia" style="position: absolute; left: 25px; top: -5px; background: #2f3542; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; white-space: nowrap; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                    ¡Incidencia nueva!
+                </div>
+            </div>
+        </div>
     {% endif %}
+{% else %}
+    <a href="{{ url_for('inicio') }}"   class="nav-link nav-link-gradiente">🏠 Inicio</a>
+    <a href="{{ url_for('registro') }}" class="nav-link nav-link-gradiente">🎁 ¡Dona Ahora!</a>
+{% endif %}
 
                 </div>
 
-                {# ── BOTÓN CUENTA ── #}
+                {# ── BOTÓN CUENTA — CORREGIDO PARA TODOS LOS ROLES (INCLUYE FUNDACIÓN) ── #}
                 <div class="navbar-nav ms-auto gap-2 align-items-center">
-                    {% if session.get('nombre') %}
+                    {% if session.get('usuario_id') or session.get('nombre') or fundacion %}
                     <button class="btn-google-account" id="btnGoogleAccount" onclick="toggleGooglePopup(event)">
                         <div class="avatar-mini">
-                            {# Solo admin muestra foto si la tiene #}
-                            {% if (session.get('rol') == 1 or session.get('rol') == '1') and session.get('foto_perfil') %}
-                                <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}"
-                                     alt="Foto Admin">
+                            {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
+                                {% if fundacion and fundacion.foto_perfil %}
+                                    <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
+                                {% elif session.get('foto_perfil') %}
+                                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                                {% else %}
+                                    {{ fundacion.nombre[0]|upper if fundacion else 'F' }}
+                                {% endif %}
                             {% else %}
-                                {{ session['nombre'][0]|upper }}
+                                {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
+                                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                                {% else %}
+                                    {{ session['nombre'][0]|upper if session.get('nombre') else 'U' }}
+                                {% endif %}
                             {% endif %}
                         </div>
-                        <span class="account-name">{{ session['nombre'].split(' ')[0] }}</span>
+                        <span class="account-name">
+                            {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
+                                {{ fundacion.nombre.split(' ')[0] if fundacion else 'Fundación' }}
+                            {% else %}
+                                {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}
+                            {% endif %}
+                        </span>
                         <i class="fas fa-chevron-down" style="font-size:0.65rem;color:#aaa;margin-left:2px;"></i>
                     </button>
                     {% else %}
@@ -230,44 +282,83 @@
         </div>
     </nav>
 
-    {# ══ POPUP ESTILO GOOGLE ══ #}
-    {% if session.get('nombre') %}
+    {# ══ POPUP ESTILO GOOGLE — CORREGIDO PARA MOSTRAR LOS DATOS DE LA FUNDACIÓN ADENTRO ══ #}
+    {% if session.get('usuario_id') or session.get('nombre') or fundacion %}
     <div id="googlePopupBackdrop" onclick="cerrarGooglePopup()"></div>
     <div id="googleAccountPopup">
 
         <div class="gp-header">
             <button class="gp-close" onclick="cerrarGooglePopup()">✕</button>
 
-            {# Avatar del popup — foto real solo para admin #}
             <div class="gp-avatar-circle">
-                {% if (session.get('rol') == 1 or session.get('rol') == '1') and session.get('foto_perfil') %}
-                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}"
-                         alt="Foto Admin">
+                {% if fundacion %}
+                    {% if fundacion.foto_perfil %}
+                        <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
+                    {% else %}
+                        {{ fundacion.nombre[0]|upper }}
+                    {% endif %}
                 {% else %}
-                    {{ session['nombre'][0]|upper }}
+                    {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
+                        <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                    {% else %}
+                        {{ session['nombre'][0]|upper if session.get('nombre') else 'F' }}
+                    {% endif %}
                 {% endif %}
             </div>
 
-            <div class="gp-saludo">¡Hola, {{ session['nombre'].split(' ')[0] }}!</div>
-            {% if session.get('correo') %}
-            <div class="gp-email">{{ session['correo'] }}</div>
-            {% endif %}
+            <div class="gp-saludo">
+                {% if fundacion %}
+                    {# MODIFICADO: Arriba muestra el nombre del encargado (Ronald) #}
+                    ¡Hola, {{ session.get('nombre').split(' ')[0] if session.get('nombre') else (fundacion.usuario_encargado.split(' ')[0] if fundacion.usuario_encargado else 'Encargado') }}!
+                {% else %}
+                    ¡Hola, {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}!
+                {% endif %}
+            </div>
 
-            {% if session.get('rol') == 1 or session.get('rol') == '1' %}
+            <div class="gp-email">
+                {% if fundacion %}
+                    {{ fundacion.correo }}
+                {% else %}
+                    {{ session['correo'] if session.get('correo') else '' }}
+                {% endif %}
+            </div>
+
+            {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
+                <span class="gp-rol-badge gp-rol-fundacion">🏛️ Fundación Activa</span>
+            {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
                 <span class="gp-rol-badge gp-rol-admin">🛡️ Administrador</span>
             {% elif session.get('rol') == 2 or session.get('rol') == '2' %}
                 <span class="gp-rol-badge gp-rol-donador">🙋 Donador</span>
-            {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
-                <span class="gp-rol-badge gp-rol-fundacion">🏛️ Fundación</span>
             {% endif %}
         </div>
 
         <div class="gp-body">
             <div class="gp-info-row">
                 <i class="fas fa-user"></i>
-                <span>{{ session['nombre'] }}</span>
+                <span>
+                    {# MODIFICADO: Por defecto fuera del saludo muestra el nombre de la fundación registrada #}
+                    {% if fundacion %}
+                        {{ fundacion.nombre }}
+                    {% else %}
+                        {{ session['nombre'] if session.get('nombre') else 'Nombre no registrado' }}
+                    {% endif %}
+                </span>
             </div>
-            {% if session.get('telefono') %}
+
+            {# ── INYECCIÓN EXCLUSIVA DEL ENCARGADO PARA EL ROL DE FUNDACIÓN ── #}
+            {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
+            <div class="gp-info-row">
+                <i class="fas fa-user-tie"></i>
+                <span><strong>Encargado:</strong> {{ session.get('nombre') if session.get('nombre') else (fundacion.usuario_encargado if fundacion else 'No asignado') }}</span>
+            </div>
+            {% endif %}
+            
+            {% if fundacion and fundacion.telefono %}
+            <div class="gp-info-row">
+                <i class="fas fa-phone"></i>
+                <span>{{ fundacion.telefono }}</span>
+            </div>
+            {% elif session.get('telefono') %}
             <div class="gp-info-row">
                 <i class="fas fa-phone"></i>
                 <span>{{ session['telefono'] }}</span>
@@ -277,6 +368,10 @@
 
         <a href="{{ url_for('editar_perfil') }}" class="gp-btn-perfil" onclick="cerrarGooglePopup()">
             ✏️ Administrar mi Cuenta
+        </a>
+
+        <a href="/soporte/nuevo" class="gp-btn-perfil" style="margin-top: 5px; border-color: #43c98a; color: #157347;" onclick="cerrarGooglePopup()">
+            🎧 Soporte Técnico
         </a>
 
         <div class="gp-footer">
@@ -308,6 +403,45 @@
     {% block scripts %}{% endblock %}
 
 <script>
+    // --- LÓGICA DE INCIDENCIAS ---
+    let ultimaCuenta = 0;
+
+    function actualizarNotificaciones() {
+        fetch('/api/contar_pendientes')
+            .then(res => res.json())
+            .then(data => {
+                const cont = document.getElementById('contNotif');
+                const badge = document.getElementById('badgeInc');
+                const campana = document.getElementById('campanaAnim');
+                const mensaje = document.getElementById('msjIncidencia');
+                
+                if (data.pendientes > 0) {
+                    cont.style.display = 'inline-block';
+                    badge.innerText = data.pendientes;
+                    campana.classList.add('shake-active');
+
+                    // Solo muestra el mensaje si el número aumentó (hay algo nuevo de verdad)
+                    if (data.pendientes > ultimaCuenta) {
+                        mensaje.style.display = 'block';
+                        setTimeout(() => { mensaje.style.display = 'none'; }, 5000);
+                    }
+                    ultimaCuenta = data.pendientes;
+                } else {
+                    cont.style.display = 'none';
+                    campana.classList.remove('shake-active');
+                    ultimaCuenta = 0;
+                }
+            })
+            .catch(err => console.log("Error en polling:", err));
+    }
+
+    // Ejecutar si es admin (cada 10 seg)
+    if (document.getElementById('contNotif')) {
+        setInterval(actualizarNotificaciones, 10000);
+        actualizarNotificaciones();
+    }
+
+    // --- LÓGICA DE POPUP GOOGLE (TU CÓDIGO ORIGINAL) ---
     function toggleGooglePopup(e) {
         e.stopPropagation();
         const popup    = document.getElementById('googleAccountPopup');
@@ -320,13 +454,18 @@
             if (backdrop) backdrop.style.display = 'block';
         }
     }
+
     function cerrarGooglePopup() {
         const popup    = document.getElementById('googleAccountPopup');
         const backdrop = document.getElementById('googlePopupBackdrop');
         if (popup)    popup.style.display    = 'none';
         if (backdrop) backdrop.style.display = 'none';
     }
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarGooglePopup(); });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') cerrarGooglePopup();
+    });
+
     document.addEventListener('click', function(e) {
         const popup = document.getElementById('googleAccountPopup');
         const btn   = document.getElementById('btnGoogleAccount');

@@ -34,31 +34,45 @@
         .table thead { background: #1e52ff; color: white; }
         .empty-state { text-align: center; padding: 50px; color: #aaa; }
         .empty-state i { font-size: 3rem; margin-bottom: 15px; display: block; }
-
-        /* ── Botón Reporte Admin dentro del panel — mismo estilo que nav-link-gradiente ── */
         .btn-reporte-panel {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-decoration: none;
-            border: 1px solid #eee;
-            color: #444;
-            background: white;
-            transition: all 0.3s ease;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 20px; border-radius: 10px; font-weight: 600;
+            font-size: 0.9rem; text-decoration: none; border: 1px solid #eee;
+            color: #444; background: white; transition: all 0.3s ease;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
         }
         .btn-reporte-panel:hover {
             background: linear-gradient(135deg, #7b2ff7 0%, #4a90d9 50%, #43c98a 100%);
-            color: #fff;
-            border-color: transparent;
-            text-decoration: none;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            color: #fff; border-color: transparent; text-decoration: none;
+            transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2);
         }
+
+        /* ── Modal eliminar ── */
+        .motivo-option {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer;
+            border: 1.5px solid #eee; margin-bottom: 6px;
+            transition: all 0.2s;
+        }
+                /* Estilo para igualar los logos en todos los mensajes/modales */
+        .logo-mensaje {
+            width: 120px !important;   /* Ajusta este valor al tamaño que desees */
+            height: auto !important;    /* Mantiene la proporción */
+            display: block;
+            margin: 0 auto 20px auto;   /* Lo centra y le da espacio abajo */
+            object-fit: contain;
+        }
+
+        /* Contenedor del logo para que no se vea pegado a los bordes */
+        .container-logo-modal {
+            padding: 20px;
+            text-align: center;
+            background: transparent;
+        }
+        .motivo-option:hover { border-color: #dc3545; background: #fff5f5; }
+        .motivo-option input[type=radio] { margin-top: 3px; accent-color: #dc3545; }
+        .motivo-option label { cursor: pointer; font-size: 0.88rem; color: #444; margin: 0; }
+        .motivo-option.seleccionado { border-color: #dc3545; background: #fff0f0; }
     </style>
 {% endblock %}
 
@@ -66,15 +80,13 @@
 <div class="container-fluid px-4">
     <div class="main-admin-wrapper">
 
-        {# ── HEADER con acceso rápido al Reporte Admin ── #}
         <div class="dashboard-header shadow-sm">
             <h1 class="fw-bold">🏛️ Panel de Gestión - Administrador</h1>
             <p class="mb-3 opacity-75">Red Solidaria - Monitoreo de actividad en tiempo real</p>
-            </a>
         </div>
 
-        {# ── TARJETAS DE CONTEO ── #}
-        <div class="row g-3 justify-content-center mb-5">
+        {# ── TARJETAS ── #}
+        <div class="row g-3 justify-content-center mb-4">
             <div class="col-xl-2 col-md-4 col-6">
                 <div class="stats-card card-donantes" onclick="activarPanel('Donantes-tab')">
                     <div style="font-size:2rem;">👥</div>
@@ -134,16 +146,24 @@
 
         <div class="tab-content tab-content-container shadow-sm" id="adminTabContent">
 
+            {# ── DONANTES ── #}
             <div class="tab-pane fade show active" id="panel-donantes" role="tabpanel">
                 <h3>👥 Gestión de Donantes</h3>
                 {% if donantes %}
                 <table class="table table-hover align-middle">
-                    <thead><tr><th>Nombre</th><th>Correo</th><th>Fecha Registro</th><th>Estado</th></tr></thead>
+                    <thead><tr><th>Nombre</th><th>Correo</th><th>Fecha Registro</th><th>Estado</th><th>Acciones</th></tr></thead>
                     <tbody>
                         {% for d in donantes %}
-                        <tr>
-                            <td>{{ d.nombre }}</td><td>{{ d.correo }}</td><td>{{ d.fecha_registro }}</td>
+                        <tr id="fila-donante-{{ d.id }}">
+                            <td>{{ d.nombre }}</td>
+                            <td>{{ d.correo }}</td>
+                            <td>{{ d.fecha_registro }}</td>
                             <td><span class="badge {% if d.estado == 'aprobado' %}bg-success{% else %}bg-secondary{% endif %}">{{ d.estado|capitalize }}</span></td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="abrirModalEliminarDonante('{{ d.id }}', '{{ d.nombre|e }}')">
+                                    🗑️ Eliminar
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -153,22 +173,48 @@
                 {% endif %}
             </div>
 
+            {# ── FUNDACIONES ── #}
             <div class="tab-pane fade" id="panel-fundaciones" role="tabpanel">
                 <h3>🏛️ Directorio de Fundaciones</h3>
                 {% if fundaciones_pendientes or fundaciones_aprobadas or fundaciones_rechazadas %}
-                <table class="table table-hover align-middle">
-                    <thead><tr><th>Nombre</th><th>NIT</th><th>Correo</th><th>Fecha Registro</th><th>Estado</th></tr></thead>
-                    <tbody>
-                        {% for f in fundaciones_aprobadas %}<tr><td>{{ f.nombre }}</td><td>{{ f.nit }}</td><td>{{ f.correo }}</td><td>{{ f.fecha_registro }}</td><td><span class="badge bg-success">Aprobada</span></td></tr>{% endfor %}
-                        {% for f in fundaciones_pendientes %}<tr><td>{{ f.nombre }}</td><td>{{ f.nit }}</td><td>{{ f.correo }}</td><td>{{ f.fecha_registro }}</td><td><span class="badge bg-warning text-dark">Pendiente</span></td></tr>{% endfor %}
-                        {% for f in fundaciones_rechazadas %}<tr><td>{{ f.nombre }}</td><td>{{ f.nit }}</td><td>{{ f.correo }}</td><td>{{ f.fecha_registro }}</td><td><span class="badge bg-danger">Rechazada</span></td></tr>{% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th><th>NIT</th><th>Correo</th>
+                                <th>Fecha Registro</th><th>Estado</th><th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in fundaciones_aprobadas + fundaciones_pendientes + fundaciones_rechazadas %}
+                            <tr id="fila-fund-{{ f.id }}">
+                                <td>{{ f.nombre }}</td><td>{{ f.nit }}</td><td>{{ f.correo }}</td>
+                                <td>{{ f.fecha_registro }}</td>
+                                <td>
+                                    {% if f.estado_validacion == 'aprobado' %}
+                                        <span class="badge bg-success">Aprobada</span>
+                                    {% elif f.estado_validacion == 'pendiente' %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                   
+                                        <span class="badge bg-danger">Rechazada</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm" onclick="abrirModalEliminar('{{ f.id }}', '{{ f.nombre|e }}')">
+                                        🗑️ Eliminar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
                 <div class="empty-state"><i class="fas fa-university"></i><p>No hay fundaciones.</p></div>
                 {% endif %}
             </div>
 
+            {# ── DONACIONES ── #}
             <div class="tab-pane fade" id="panel-fisicas" role="tabpanel">
                 <h3>📦 Historial de Donaciones Físicas</h3>
                 {% if donaciones %}
@@ -196,6 +242,7 @@
                 {% endif %}
             </div>
 
+            {# ── ECONÓMICAS ── #}
             <div class="tab-pane fade" id="panel-economicas" role="tabpanel">
                 <h3>💰 Donaciones Monetarias</h3>
                 {% if donaciones_economicas %}
@@ -208,6 +255,7 @@
                 {% endif %}
             </div>
 
+            {# ── PAGOS ── #}
             <div class="tab-pane fade" id="panel-pagos" role="tabpanel">
                 <h3>💳 Registro de Pagos</h3>
                 {% if pagos %}
@@ -220,6 +268,7 @@
                 {% endif %}
             </div>
 
+            {# ── PENDIENTES ── #}
             <div class="tab-pane fade" id="panel-pendientes" role="tabpanel">
                 <h3>⏳ Tareas y Validaciones Pendientes</h3>
                 {% if fundaciones_pendientes %}
@@ -229,7 +278,10 @@
                         {% for f in fundaciones_pendientes %}
                         <tr>
                             <td>{{ f.nombre }}</td>
-                            <td><a href="https://www.rues.org.co/RM/Consultas/ConsultaNIT?nit={{ f.nit }}" target="_blank">{{ f.nit }}</a> <button class="btn btn-link p-0 ms-1" onclick="mostrarModalFundacion({{ loop.index0 }})">🔍</button></td>
+                            <td>
+                                <a href="https://www.rues.org.co/RM/Consultas/ConsultaNIT?nit={{ f.nit }}" target="_blank">{{ f.nit }}</a>
+                                <button class="btn btn-link p-0 ms-1" onclick="mostrarModalFundacion({{ loop.index0 }})">🔍</button>
+                            </td>
                             <td>{{ f.correo }}</td>
                             <td>{{ f.fecha_registro }}</td>
                             <td>
@@ -245,6 +297,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
                 <div class="modal fade" id="modalFundacion" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog"><div class="modal-content">
                         <div class="modal-header"><h5 class="modal-title">Detalles de Fundación</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -267,11 +320,139 @@
         </div>
     </div>
 </div>
+
+{# ══ MODAL ELIMINAR FUNDACIÓN ══ #}
+<div class="modal fade" id="modalEliminarFundacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;">
+                <h5 class="modal-title fw-bold">🗑️ Eliminar Fundación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-1">Vas a eliminar: <strong id="nombreFundEliminar"></strong></p>
+                <p class="text-muted small mb-3">Se notificará a la fundación por correo con el motivo seleccionado.</p>
+
+                <label class="fw-bold mb-2 d-block">Selecciona el motivo:</label>
+                <div id="listaMotivosFundacion">
+                    {% for key, texto in motivos_eliminacion.items() %}
+                    <div class="motivo-option" onclick="seleccionarMotivoFundacion(this, '{{ key }}')">
+                        <input type="radio" name="motivoElimFund" value="{{ key }}" id="motivo_fund_{{ key }}">
+                        <label for="motivo_fund_{{ key }}">{{ texto }}</label>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="motivo-option" onclick="seleccionarMotivoFundacion(this, 'OTROS')">
+                        <input type="radio" name="motivoElimFund" value="OTROS" id="motivo_fund_OTROS">
+                        <label for="motivo_fund_OTROS">Otros (Especificar motivo)</label>
+                    </div>
+                </div>
+
+                <div id="campoOtrosFundacion" class="mt-3" style="display:none;">
+                    <label class="fw-bold mb-1 small">Escribe el motivo (máx. 300 caracteres):</label>
+                    <textarea id="mensajeOtrosFundacion" class="form-control" rows="3" maxlength="300"></textarea>
+                    <div class="text-end small text-muted"><span id="charCountFundacion">0</span>/300</div>
+                </div>
+
+                <div id="errorMotivoFundacion" class="text-danger small mt-2" style="display:none;">
+                    ⚠️ Debes seleccionar un motivo antes de continuar.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger fw-bold px-4" onclick="confirmarEliminarFundacion()">
+                    🗑️ Confirmar Eliminación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══ MODAL ELIMINAR DONANTE ══ #}
+<div class="modal fade" id="modalEliminarDonante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;">
+                <h5 class="modal-title fw-bold">🗑️ Eliminar Donante</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p>Vas a eliminar al donante: <strong id="nombreDonanteEliminar"></strong></p>
+                <label class="fw-bold mb-2 d-block">Selecciona el motivo:</label>
+                
+                <div id="listaMotivosDonante">
+                    {% for key, texto in motivos_eliminacion_donante.items() %}
+                    <div class="motivo-option" onclick="seleccionarMotivoDonante(this, '{{ key }}')">
+                        <input type="radio" name="motivoElimDon" value="{{ key }}" id="motivo_don_{{ key }}">
+                        <label for="motivo_don_{{ key }}">{{ texto }}</label>
+                    </div>
+                    {% endfor %}
+
+                    <div class="motivo-option" onclick="seleccionarMotivoDonante(this, 'OTROS')">
+                        <input type="radio" name="motivoElimDon" value="OTROS" id="motivo_don_otros">
+                        <label for="motivo_don_otros">Otros (especificar motivo)</label>
+                    </div>
+                </div>
+
+                <div id="contenedorOtroMotivoDonante" style="display: none;" class="mt-3">
+                    <textarea id="textoOtroMotivoDonante" class="form-control" rows="3" maxlength="300" placeholder="Escribe el motivo aquí..."></textarea>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted ms-auto" id="contadorCaracteres">0 / 300</small>
+                    </div>
+                </div>
+
+                <div id="errorMotivoDonante" class="text-danger small mt-2" style="display:none;">
+                    ⚠️ Debes seleccionar un motivo.
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger fw-bold" onclick="confirmarEliminarDonante()">🗑️ Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ══ MODAL ACTIVO PARA ENVÍO DE REPORTE POR CORREO (CON NUEVA ESTRUCTURA) ══ #}
+<div class="modal fade" id="modalEnviarReporteAdmin" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">✉️ Enviar Reporte Ejecutivo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEnviarReporte" onsubmit="enviarReporteCorreo(event)">
+                <div class="modal-body p-4">
+                    <p class="text-muted small">El sistema compilará las donaciones según los filtros aplicados en pantalla y enviará un PDF formal mediante Spring Boot.</p>
+                    <div class="mb-3">
+                        <label for="correo_reporte" class="form-label fw-bold small">Correo Electrónico Destinatario:</label>
+                        <input type="email" id="correo_reporte" class="form-control" placeholder="ejemplo@correo.com" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">Procesar y Enviar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Datos de fundaciones para el modal de detalles
     const fundacionesData = [{% for f in fundaciones_pendientes %}{ nombre:"{{ f.nombre|e }}", nit:"{{ f.nit|e }}", correo:"{{ f.correo|e }}", fecha:"{{ f.fecha_registro|e }}", estado:"{{ f.estado_validacion|e }}" }{% if not loop.last %},{% endif %}{% endfor %}];
+
+    // ── NAVEGACIÓN Y DETALLES ──
+    function activarPanel(idBotonTab) {
+        const el = document.getElementById(idBotonTab);
+        if (el) {
+            new bootstrap.Tab(el).show();
+            el.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+    }
 
     function mostrarModalFundacion(idx) {
         const f = fundacionesData[idx];
@@ -282,27 +463,186 @@
         document.getElementById('modalEstado').textContent = f.estado;
         new bootstrap.Modal(document.getElementById('modalFundacion')).show();
     }
-    function actualizarEstadoFundacion(idx, nuevoEstado) {
+
+    // ── GESTIÓN DE ESTADOS (APROBAR/RECHAZAR) ──
+    function actualizarEstadoVisual(idx, nuevoEstado) {
         const span = document.getElementById('estado-' + idx);
         if (!span) return;
         span.classList.remove('bg-warning','bg-success','bg-danger','text-dark');
-        if (nuevoEstado === 'aprobado')       { span.textContent='Aprobado';  span.classList.add('bg-success'); }
-        else if (nuevoEstado === 'rechazado') { span.textContent='Rechazado'; span.classList.add('bg-danger');  }
-        else                                  { span.textContent='Pendiente'; span.classList.add('bg-warning','text-dark'); }
+        if (nuevoEstado === 'aprobado') { 
+            span.textContent='Aprobado'; span.classList.add('bg-success'); 
+        } else if (nuevoEstado === 'rechazado') { 
+            span.textContent='Rechazado'; span.classList.add('bg-danger'); 
+        }
         const btns = document.getElementById('botones-' + idx);
         if (btns) btns.style.display = 'none';
     }
+
     function aprobarFundacion(id, idx) {
         if (!confirm('¿Seguro que deseas aprobar esta fundación?')) return;
-        fetch(`/aprobar_fundacion/${id}`, {method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){actualizarEstadoFundacion(idx,'aprobado');alert('Fundación aprobada.');}else alert('Error al aprobar.'); }).catch(()=>alert('Error de conexión.'));
+        fetch(`/aprobar_fundacion/${id}`, {method:'POST'})
+            .then(r=>r.json())
+            .then(d=>{ if(d.success){ actualizarEstadoVisual(idx,'aprobado'); alert('Fundación aprobada.'); } else alert('Error.'); })
+            .catch(()=>alert('Error de conexión.'));
     }
+
     function rechazarFundacion(id, idx) {
         if (!confirm('¿Seguro que deseas rechazar esta fundación?')) return;
-        fetch(`/rechazar_fundacion/${id}`, {method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){actualizarEstadoFundacion(idx,'rechazado');alert('Fundación rechazada.');}else alert('Error al rechazar.'); }).catch(()=>alert('Error de conexión.'));
+        fetch(`/rechazar_fundacion/${id}`, {method:'POST'})
+            .then(r=>r.json())
+            .then(d=>{ if(d.success){ actualizarEstadoVisual(idx,'rechazado'); alert('Fundación rechazada.'); } else alert('Error.'); })
+            .catch(()=>alert('Error de conexión.'));
     }
-    function activarPanel(idBotonTab) {
-        const el = document.getElementById(idBotonTab);
-        if (el) { new bootstrap.Tab(el).show(); document.getElementById('adminTabs').scrollIntoView({behavior:'smooth',block:'start'}); }
+
+    // ── ELIMINAR FUNDACIÓN ──
+    let fundIdEliminar = null;
+    function abrirModalEliminar(id, nombre) {
+        fundIdEliminar = id;
+        document.getElementById('nombreFundEliminar').textContent = nombre;
+        document.getElementById('errorMotivoFundacion').style.display = 'none';
+        document.getElementById('campoOtrosFundacion').style.display = 'none';
+        document.getElementById('mensajeOtrosFundacion').value = '';
+        document.querySelectorAll('#listaMotivosFundacion .motivo-option').forEach(o => o.classList.remove('seleccionado'));
+        document.querySelectorAll('input[name="motivoElimFund"]').forEach(i => i.checked = false);
+        new bootstrap.Modal(document.getElementById('modalEliminarFundacion')).show();
     }
+
+    function seleccionarMotivoFundacion(el, key) {
+        document.querySelectorAll('#listaMotivosFundacion .motivo-option').forEach(o => o.classList.remove('seleccionado'));
+        el.classList.add('seleccionado');
+        document.getElementById('motivo_fund_' + key).checked = true;
+        document.getElementById('errorMotivoFundacion').style.display = 'none';
+        document.getElementById('campoOtrosFundacion').style.display = (key === 'OTROS') ? 'block' : 'none';
+    }
+
+    function confirmarEliminarFundacion(e) {
+        const motivoSeleccionado = document.querySelector('input[name="motivoElimFund"]:checked');
+        if (!motivoSeleccionado) { document.getElementById('errorMotivoFundacion').style.display = 'block'; return; }
+
+        const motivoFinal = motivoSeleccionado.value;
+        const mensajePersonalizado = document.getElementById('mensajeOtrosFundacion').value.trim();
+        
+        if (motivoFinal === 'OTROS' && mensajePersonalizado === "") { alert("Escribe el motivo."); return; }
+
+        const btn = e ? e.target : document.querySelector('#modalEliminarFundacion .btn-danger');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
+        }
+
+        fetch(`/eliminar_fundacion/${fundIdEliminar}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ motivo: motivoFinal, mensaje: mensajePersonalizado })
+        })
+        .then(r => r.json())
+        .then(d => { 
+            if (d.success) {
+                location.reload(); 
+            } else { 
+                alert('Error'); 
+                if (btn) { btn.disabled = false; btn.innerHTML = 'Confirmar'; }
+            } 
+        });
+    }
+
+    // ── ELIMINAR DONANTE ──
+    let donanteIdEliminar = null;
+    function abrirModalEliminarDonante(id, nombre) {
+        donanteIdEliminar = id;
+        document.getElementById('nombreDonanteEliminar').textContent = nombre;
+        document.getElementById('errorMotivoDonante').style.display = 'none';
+        document.getElementById('contenedorOtroMotivoDonante').style.display = 'none';
+        document.getElementById('textoOtroMotivoDonante').value = '';
+        document.querySelectorAll('#listaMotivosDonante .motivo-option').forEach(o => o.classList.remove('seleccionado'));
+        document.querySelectorAll('input[name="motivoElimDon"]').forEach(i => i.checked = false);
+        new bootstrap.Modal(document.getElementById('modalEliminarDonante')).show();
+    }
+
+    function seleccionarMotivoDonante(el, key) {
+        document.querySelectorAll('#listaMotivosDonante .motivo-option').forEach(o => o.classList.remove('seleccionado'));
+        el.classList.add('seleccionado');
+        document.getElementById('motivo_don_' + (key === 'OTROS' ? 'otros' : key)).checked = true;
+        document.getElementById('contenedorOtroMotivoDonante').style.display = (key === 'OTROS') ? 'block' : 'none';
+    }
+
+    function confirmarEliminarDonante() {
+        const motivoSeleccionado = document.querySelector('input[name="motivoElimDon"]:checked');
+        if (!motivoSeleccionado) { document.getElementById('errorMotivoDonante').style.display = 'block'; return; }
+
+        fetch(`/eliminar_donante/${donanteIdEliminar}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                motivo: motivoSeleccionado.value, 
+                mensaje: document.getElementById('textoOtroMotivoDonante').value.trim() 
+            })
+        }).then(r => r.json()).then(d => { if(d.success) location.reload(); else alert('Error'); });
+    }
+
+    // ── GESTIÓN DE REPORTE ADMINISTRATIVO (NUEVO CONTROLADOR UNIFICADO) ──
+    
+    // 1. Descargar PDF Directo
+    function descargarReportePDF() {
+        // Capturamos los filtros actuales que el administrador tiene en pantalla
+        const categoria = document.getElementById('filtro_categoria')?.value || 'Todas';
+        const estado = document.getElementById('filtro_estado')?.value || 'Todos';
+        const donante = document.getElementById('filtro_donante')?.value || '';
+        const fundacion = document.getElementById('filtro_fundacion')?.value || '';
+
+        // Construimos la URL apuntando al endpoint correcto de Python con descargar=true
+        const urlDescarga = `/api/reporte_admin?descargar=true&categoria=${encodeURIComponent(categoria)}&estado=${encodeURIComponent(estado)}&donante=${encodeURIComponent(donante)}&fundacion=${encodeURIComponent(fundacion)}`;
+        
+        // Ejecuta la descarga directa en el navegador
+        window.location.href = urlDescarga;
+    }
+
+    // 2. Enviar Reporte por Correo (Mapeado al formulario del modal de reportes)
+    function enviarReporteCorreo(e) {
+        if(e) e.preventDefault();
+        
+        const correoInput = document.getElementById('correo_reporte')?.value;
+        if(!correoInput) { alert("Por favor ingresa un correo electrónico válido."); return; }
+
+        // Recolectamos filtros de la UI
+        const categoria = document.getElementById('filtro_categoria')?.value || 'Todas';
+        const estado = document.getElementById('filtro_estado')?.value || 'Todos';
+        const donante = document.getElementById('filtro_donante')?.value || '';
+        const fundacion = document.getElementById('filtro_fundacion')?.value || '';
+
+        const formData = new FormData();
+        formData.append('correo_reporte', correoInput);
+        formData.append('categoria', categoria);
+        formData.append('estado', estado);
+        formData.append('donante', donante);
+        formData.append('fundacion', fundacion);
+
+        // Agrega spinners o desactiva botones si lo deseas aquí
+        fetch('/api/reporte_admin', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                alert("✅ " + data.mensaje);
+                // Si usas Bootstrap puedes cerrar el modal aquí de forma automática
+            } else {
+                alert("❌ Fallo en reporte: " + data.error);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("❌ Ocurrió un error de conexión al procesar el envío.");
+        });
+    }
+
+    // ── EVENT LISTENERS CONTADORES ──
+    document.getElementById('mensajeOtrosFundacion')?.addEventListener('input', function() {
+        document.getElementById('charCountFundacion').textContent = this.value.length;
+    });
+    document.getElementById('textoOtroMotivoDonante')?.addEventListener('input', function() {
+        document.getElementById('contadorCaracteres').textContent = this.value.length + ' / 300';
+    });
 </script>
 {% endblock %}

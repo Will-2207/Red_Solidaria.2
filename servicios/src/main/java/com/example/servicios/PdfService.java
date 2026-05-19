@@ -35,74 +35,131 @@ public class PdfService {
     // REPORTE FUNDACIÓN (existente — sin cambios)
     // ══════════════════════════════════════════════
     public byte[] generarReporte(EmailRequest datos) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    
+    // El try-with-resources asegura que el writer se cierre y libere los bytes al stream 'out'
+    try (PdfWriter writer = new PdfWriter(out)) { 
+        PdfDocument pdf = new PdfDocument(writer);
+        pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new FooterHandler());
+        Document document = new Document(pdf);
+        document.setBottomMargin(50);
+
+        float[] colorAzul  = new float[]{30f/255f, 82f/255f, 255f/255f};
+        float[] colorVerde = new float[]{99f/255f, 255f/255f, 94f/255f};
+        DeviceRgb grisFondo = new DeviceRgb(248, 249, 250);
+
+        PdfCanvas canvas = new PdfCanvas(pdf.addNewPage());
+        float width  = pdf.getDefaultPageSize().getWidth();
+        float height = pdf.getDefaultPageSize().getHeight();
+        Rectangle headerRect = new Rectangle(0, height - 150, width, 150);
+        
+        PdfShading.Axial axial = new PdfShading.Axial(new PdfDeviceCs.Rgb(),
+            headerRect.getLeft(), headerRect.getBottom(), colorAzul,
+            headerRect.getRight(), headerRect.getBottom(), colorVerde);
+        
+        canvas.saveState().rectangle(headerRect).clip().endPath().paintShading(axial).restoreState();
+
+        // Bloque del Logo
         try {
-            PdfWriter writer = new PdfWriter(out);
-            PdfDocument pdf = new PdfDocument(writer);
-            pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new FooterHandler());
-            Document document = new Document(pdf);
-            document.setBottomMargin(50);
+            ClassPathResource res = new ClassPathResource("static/images/logo.jpeg");
+            Image logo = new Image(ImageDataFactory.create(res.getURL().getPath()));
+            logo.setMaxHeight(65).setHorizontalAlignment(HorizontalAlignment.CENTER)
+                .setMarginTop(10).setBackgroundColor(DeviceRgb.WHITE).setPadding(8);
+            document.add(logo);
+        } catch (Exception e) { 
+            System.out.println("⚠️ Logo no encontrado en la ruta especificada."); 
+        }
 
-            float[] colorAzul  = new float[]{30f/255f, 82f/255f, 255f/255f};
-            float[] colorVerde = new float[]{99f/255f, 255f/255f, 94f/255f};
-            DeviceRgb grisFondo = new DeviceRgb(248, 249, 250);
+        // Títulos
+        document.add(new Paragraph("RED SOLIDARIA")
+            .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
+            .setBold().setFontSize(26).setMarginTop(5));
+        
+        document.add(new Paragraph("Reporte de Impacto de Donaciones")
+            .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
+            .setFontSize(13).setMarginBottom(45));
 
-            PdfCanvas canvas = new PdfCanvas(pdf.addNewPage());
-            float width  = pdf.getDefaultPageSize().getWidth();
-            float height = pdf.getDefaultPageSize().getHeight();
-            Rectangle headerRect = new Rectangle(0, height - 150, width, 150);
-            PdfShading.Axial axial = new PdfShading.Axial(new PdfDeviceCs.Rgb(),
-                headerRect.getLeft(), headerRect.getBottom(), colorAzul,
-                headerRect.getRight(), headerRect.getBottom(), colorVerde);
-            canvas.saveState().rectangle(headerRect).clip().endPath().paintShading(axial).restoreState();
+        // --- REEMPLAZA DESDE AQUÍ (Tabla de información NIT y Fundación) ---
+        Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 1})).useAllAvailableWidth();
+        infoTable.setBackgroundColor(grisFondo).setPadding(10).setMarginBottom(20);
+        
+        // Fila 1: Fundación y NIT
+        infoTable.addCell(new Cell().add(new Paragraph("Fundación: " + datos.getNombreFundacion()).setBold())
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+        
+        infoTable.addCell(new Cell().add(new Paragraph("NIT: " + (datos.getNit() != null ? datos.getNit() : "N/A"))
+            .setTextAlignment(TextAlignment.RIGHT))
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+        
+        // Fila 2: Filtro Categoría y Filtro Estado (ESTA ES LA PARTE QUE DEBES ASEGURAR)
+        String categoria = (datos.getCategoriaFiltrada() != null && !datos.getCategoriaFiltrada().isEmpty()) 
+            ? datos.getCategoriaFiltrada() : "Todas";
+        
+        String estadoFiltro = (datos.getEstadoFiltrado() != null && !datos.getEstadoFiltrado().isEmpty()) 
+            ? datos.getEstadoFiltrado() : "Todos";
+            
+        infoTable.addCell(new Cell().add(new Paragraph("Filtro Categoría: " + categoria))
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
 
-            try {
-                ClassPathResource res = new ClassPathResource("static/images/logo.jpeg");
-                Image logo = new Image(ImageDataFactory.create(res.getURL().getPath()));
-                logo.setMaxHeight(65).setHorizontalAlignment(HorizontalAlignment.CENTER)
-                    .setMarginTop(10).setBackgroundColor(DeviceRgb.WHITE).setPadding(8);
-                document.add(logo);
-            } catch (Exception e) { System.out.println("Logo no encontrado"); }
+        infoTable.addCell(new Cell().add(new Paragraph("Filtro Estado: " + estadoFiltro) // <--- AGREGADO
+            .setTextAlignment(TextAlignment.RIGHT))
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+        
+        // Fila 3: Total Registros
+        infoTable.addCell(new Cell(1, 2).add(new Paragraph("Total Registros: " + datos.getCantidadDonaciones())
+            .setBold().setTextAlignment(TextAlignment.CENTER))
+            .setMarginTop(5)
+            .setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
+        
+        document.add(infoTable);
+        // --- HASTA AQUÍ ---
 
-            document.add(new Paragraph("RED SOLIDARIA")
-                .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
-                .setBold().setFontSize(26).setMarginTop(5));
-            document.add(new Paragraph("Reporte de Impacto de Donaciones")
-                .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
-                .setFontSize(13).setMarginBottom(45));
+        // --- TABLA DE DONACIONES (COPIA DESDE AQUÍ) ---
+        Table table = new Table(new float[]{250f, 100f, 100f}).useAllAvailableWidth();
 
-            Table infoTable = new Table(UnitValue.createPercentArray(new float[]{1, 1})).useAllAvailableWidth();
-            infoTable.setBackgroundColor(grisFondo).setPadding(10).setMarginBottom(20);
-            infoTable.addCell(new Cell().add(new Paragraph("Fundación: " + datos.getNombreFundacion()).setBold()).setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            infoTable.addCell(new Cell().add(new Paragraph("NIT: " + datos.getNit()).setTextAlignment(TextAlignment.RIGHT)).setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            String categoria = (datos.getCategoriaFiltrada() != null && !datos.getCategoriaFiltrada().isEmpty()) ? datos.getCategoriaFiltrada() : "Todas";
-            infoTable.addCell(new Cell().add(new Paragraph("Filtro Categoría: " + categoria)).setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            infoTable.addCell(new Cell().add(new Paragraph("Total Registros: " + datos.getCantidadDonaciones()).setBold().setTextAlignment(TextAlignment.RIGHT)).setBorder(com.itextpdf.layout.borders.Border.NO_BORDER));
-            document.add(infoTable);
+        // Encabezados de la tabla
+        table.addHeaderCell(new Cell().add(new Paragraph("Descripción").setBold().setFontColor(DeviceRgb.WHITE))
+            .setBackgroundColor(new DeviceRgb(30, 82, 255)));
+        table.addHeaderCell(new Cell().add(new Paragraph("Cantidad").setBold().setFontColor(DeviceRgb.WHITE))
+            .setBackgroundColor(new DeviceRgb(30, 82, 255)).setTextAlignment(TextAlignment.CENTER));
+        table.addHeaderCell(new Cell().add(new Paragraph("Estado").setBold().setFontColor(DeviceRgb.WHITE))
+            .setBackgroundColor(new DeviceRgb(30, 82, 255)).setTextAlignment(TextAlignment.CENTER));
 
-            Table table = new Table(new float[]{250f, 100f, 100f}).useAllAvailableWidth();
-            table.addHeaderCell(new Cell().add(new Paragraph("Descripción").setBold().setFontColor(DeviceRgb.WHITE)).setBackgroundColor(new DeviceRgb(30, 82, 255)));
-            table.addHeaderCell(new Cell().add(new Paragraph("Cantidad").setBold().setFontColor(DeviceRgb.WHITE)).setBackgroundColor(new DeviceRgb(30, 82, 255)).setTextAlignment(TextAlignment.CENTER));
-            table.addHeaderCell(new Cell().add(new Paragraph("Estado").setBold().setFontColor(DeviceRgb.WHITE)).setBackgroundColor(new DeviceRgb(30, 82, 255)).setTextAlignment(TextAlignment.CENTER));
+        // Contenido de la tabla
+        if (datos.getDonaciones() != null && !datos.getDonaciones().isEmpty()) {
+            for (Map<String, Object> d : datos.getDonaciones()) {
+                // 1. Descripción y Cantidad
+                table.addCell(new Cell().add(new Paragraph(d.getOrDefault("descripcion", "Sin descripción").toString())).setPadding(5));
+                table.addCell(new Cell().add(new Paragraph(d.getOrDefault("cantidad", "0").toString())).setTextAlignment(TextAlignment.CENTER));
+                
+                // 2. Lógica de Estado (Priorizamos estado_donante que es el ENUM de tu DB)
+                String estadoAMostrar = d.getOrDefault("estado_donante", 
+                                        d.getOrDefault("estado_fundacion", "pendiente")).toString();
 
-            if (datos.getDonaciones() != null && !datos.getDonaciones().isEmpty()) {
-                for (Map<String, Object> d : datos.getDonaciones()) {
-                    table.addCell(new Cell().add(new Paragraph(d.get("descripcion").toString())).setPadding(5));
-                    table.addCell(new Cell().add(new Paragraph(d.get("cantidad").toString())).setTextAlignment(TextAlignment.CENTER));
-                    String estado = d.containsKey("estado_fundacion") && d.get("estado_fundacion") != null
-                        ? d.get("estado_fundacion").toString() : d.get("estado").toString();
-                    table.addCell(new Cell().add(new Paragraph(estado)).setTextAlignment(TextAlignment.CENTER));
+                // 3. Ajuste visual: Si hay un filtro activo, mostramos ese estado para que el PDF sea coherente
+                if (datos.getEstadoFiltrado() != null && 
+                    !datos.getEstadoFiltrado().isEmpty() && 
+                    !datos.getEstadoFiltrado().equalsIgnoreCase("Todos")) {
+                    estadoAMostrar = datos.getEstadoFiltrado();
                 }
-            } else {
-                table.addCell(new Cell(1, 4).add(new Paragraph("No se encontraron donaciones con los filtros seleccionados.")).setPadding(5));
-                table.addCell(new Cell().add(new Paragraph("0")).setTextAlignment(TextAlignment.CENTER));
-                table.addCell(new Cell().add(new Paragraph("-")).setTextAlignment(TextAlignment.CENTER));
+                
+                table.addCell(new Cell().add(new Paragraph(estadoAMostrar)).setTextAlignment(TextAlignment.CENTER));
             }
-            document.add(table);
-            document.close();
-        } catch (Exception e) { e.printStackTrace(); }
-        return out.toByteArray();
+        } else {
+            table.addCell(new Cell(1, 3).add(new Paragraph("No se encontraron donaciones con los filtros seleccionados.")).setPadding(5));
+        }
+
+// --- HASTA AQUÍ ---
+        document.add(table);
+        document.close(); // Cierre del documento
+        
+    } catch (Exception e) { 
+        System.err.println("❌ Error al generar el PDF: " + e.getMessage());
+        e.printStackTrace(); 
     }
+    
+    return out.toByteArray();
+}
 
     // ══════════════════════════════════════════════════════════════
     // REPORTE ADMIN — solo muestra secciones que tienen datos

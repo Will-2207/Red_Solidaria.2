@@ -27,13 +27,75 @@
             background-color: #0056b3;
             transform: translateY(-2px);
         }
-        /* Estilos adicionales para el nuevo muro */
         .card-necesidad {
             border-radius: 20px;
             transition: transform 0.3s ease;
         }
-        .card-necesidad:hover {
-            transform: translateY(-5px);
+        .card-necesidad:hover { transform: translateY(-5px); }
+
+        /* ── Stats panel (igual que fundación) ── */
+        .stats-lateral {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-top: 14px;
+        }
+        .stats-lateral-header {
+            background: linear-gradient(135deg, #7b2ff7, #43c98a);
+            color: white;
+            font-weight: 700;
+            font-size: 0.82rem;
+            padding: 8px 14px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 14px;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 0.85rem;
+            color: #444;
+        }
+        .stats-item:last-child { border-bottom: none; }
+        .stats-item .label { display: flex; align-items: center; gap: 7px; }
+        .stats-num {
+            font-weight: 800;
+            font-size: 1rem;
+            min-width: 28px;
+            text-align: center;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .num-pendiente   { background: #fff3cd; color: #856404; }
+        .num-recibido    { background: #d1f7e3; color: #155724; }
+        .num-rechazado   { background: #f8d7da; color: #721c24; }
+        .num-alimentos   { background: #cce5ff; color: #004085; }
+        .num-ropa        { background: #e2d9f3; color: #4a235a; }
+        .num-otros       { background: #ffeeba; color: #6d4c00; }
+        .num-total       { background: #e9ecef; color: #333; }
+        .num-transaccion { background: #d4edda; color: #155724; }
+
+        /* ── Foto lateral ── */
+        .foto-perfil-lateral {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #007bff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .avatar-inicial-lateral {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 800; font-size: 2.5rem;
+            border: 4px solid #007bff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            margin: 0 auto;
         }
     </style>
 {% endblock %}
@@ -48,61 +110,121 @@
         </div>
 
         <div class="row mb-4">
+
+            {# ══ PANEL LATERAL ══ #}
             <div class="col-lg-3">
                 <div class="perfil perfil-donante-card mb-4 shadow-sm">
-                    <div class="text-center mb-2">
-                        <span class="badge bg-success d-block" style="font-size: 1rem; padding: 0.6em 1.2em; border-radius: 8px;">
-                            <i class="fas fa-check-square"></i> Donador Activo
-                        </span>
-                    </div>
-                    <div class="profile-img-container text-center mb-3">
-                            <img src="{{ url_for('static', filename='img/' + (donador.foto_perfil if donador.foto_perfil else 'donador-default.jpg')) }}" 
-                                class="rounded-circle shadow-sm" 
-                                style="width: 140px; height: 140px; object-fit: cover; border: 5px solid #007bff;">
-                    </div>
-                    
-                    <h3 class="fw-bold text-center mb-1">{{ donador.nombre }}</h3>
-                    <p class="text-muted text-center small mb-3">Donador de Corazón ❤️</p>
-                    
-                    <div class="text-center">
-                        <button class="btn-gestion btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#formEditarDonante" aria-expanded="false">
-                            ✏️ Editar Mi Perfil
-                        </button>
 
-                        <div class="collapse mt-3" id="formEditarDonante">
-                            <div class="card card-body border-primary p-3 shadow-sm" style="background-color: #fdfdfd; border-radius: 10px;">
-                                <form action="{{ url_for('editar_perfil') }}" method="POST" enctype="multipart/form-data">
-                                    <div class="mb-2 text-start">
-                                        <label class="small fw-bold text-primary">📸 Actualizar Foto</label>
-                                        <input type="file" name="foto_perfil" class="form-control form-control-sm" accept="image/*">
-                                    </div>
-                                    <div class="mb-2 text-start">
-                                        <label class="small fw-bold">Nombre Completo</label>
-                                        <input type="text" name="nombre" class="form-control form-control-sm" value="{{ donador.nombre }}" required>
-                                    </div>
-                                    <div class="mb-2 text-start">
-                                        <label class="small fw-bold">Teléfono de Contacto</label>
-                                        <input type="text" name="telefono" class="form-control form-control-sm" value="{{ donador.telefono }}">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold mt-2">💾 GUARDAR CAMBIOS</button>
-                                </form>
+                    {# ── Foto de perfil ── #}
+                    <div class="text-center mb-3 mt-3">
+                        {% if donador.foto_perfil and donador.foto_perfil != '' %}
+                            <img src="{{ url_for('static', filename='img/' + donador.foto_perfil) }}"
+                                 class="foto-perfil-lateral" alt="Foto donador">
+                        {% else %}
+                            <div class="avatar-inicial-lateral">
+                                {{ donador.nombre[0]|upper if donador.nombre else '?' }}
                             </div>
-                        </div>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="fw-bold text-center mb-1">{{ donador.nombre }}</h3>
+                    <p class="text-muted text-center small mb-2">Donador de Corazón ❤️</p>
+
+                    {# ── Badge estado corregido ── #}
+                    {% if donador.estado == 'aprobado' or donador.estado == 'Activo' %}
+                        <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
+                    {% elif donador.estado == 'pendiente' %}
+                        <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
+                    {% elif donador.estado == 'rechazado' %}
+                        <span class="badge bg-danger d-block text-center mb-3">❌ Donante Rechazado</span>
+                    {% else %}
+                        {# Este es el que evita que diga 'None' y pone 'Activo' con color verde #}
+                        <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
+                    {% endif %}
+
+                    
+                </div>
+
+                {# ══ STATS DE DONACIONES ══ #}
+                <div class="stats-lateral">
+                    <div class="stats-lateral-header">📊 Mis Donaciones</div>
+
+                    {# Conteos por estado_donante #}
+                    {% if donaciones %}
+                        {% set pend  = donaciones | selectattr('estado_donante', 'equalto', 'pendiente') | list | length %}
+                        {% set recib = donaciones | selectattr('estado_donante', 'equalto', 'recibido')  | list | length %}
+                        {% set rech  = donaciones | selectattr('estado_donante', 'equalto', 'rechazado') | list | length %}
+                    {% else %}
+                        {% set pend = 0 %}{% set recib = 0 %}{% set rech = 0 %}
+                    {% endif %}
+
+                    <div class="stats-item">
+                        <span class="label">⏳ Pendientes</span>
+                        <span class="stats-num num-pendiente">{{ pend }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">✅ Recibidas</span>
+                        <span class="stats-num num-recibido">{{ recib }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">❌ Rechazadas</span>
+                        <span class="stats-num num-rechazado">{{ rech }}</span>
+                    </div>
+
+                    <div class="stats-lateral-header"
+                         style="background:linear-gradient(135deg,#2575fc,#43c98a);">
+                        📦 Por Categoría
+                    </div>
+
+                    {# Conteos por categoría #}
+                    {% if donaciones %}
+                        {% set alim  = donaciones | selectattr('categoria_nombre', 'equalto', 'Alimentos') | list | length %}
+                        {% set ropa  = donaciones | selectattr('categoria_nombre', 'equalto', 'Ropa')      | list | length %}
+                        {% set otros = donaciones | selectattr('categoria_nombre', 'equalto', 'Otros')     | list | length %}
+                    {% else %}
+                        {% set alim = 0 %}{% set ropa = 0 %}{% set otros = 0 %}
+                    {% endif %}
+
+                    <div class="stats-item">
+                        <span class="label">🥫 Alimentos</span>
+                        <span class="stats-num num-alimentos">{{ alim }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">👕 Ropa</span>
+                        <span class="stats-num num-ropa">{{ ropa }}</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">📦 Otros</span>
+                        <span class="stats-num num-otros">{{ otros }}</span>
+                    </div>
+
+                    {# ── Transacciones (próximamente) ── #}
+                    <div class="stats-lateral-header"
+                         style="background:linear-gradient(135deg,#f7971e,#ffd200);">
+                        💳 Transacciones
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">💰 Económicas</span>
+                        <span class="stats-num num-transaccion">0</span>
+                    </div>
+                    <div class="stats-item">
+                        <span class="label">💳 Pagos</span>
+                        <span class="stats-num num-transaccion">0</span>
+                    </div>
+
+                    <div class="stats-item" style="background:#f8f9fa;">
+                        <span class="label fw-bold">🔢 Total donaciones</span>
+                        <span class="stats-num num-total">{{ donaciones|length if donaciones else 0 }}</span>
                     </div>
                 </div>
 
-                <div class="stats-panel">
-                    <div class="stat-card shadow-sm">
-                        <div class="stat-icon">🌟</div>
-                        <h4>{{ donaciones|length if donaciones else 0 }}</h4>
-                        <p>Donaciones Enviadas</p>
-                    </div>
-                </div>
             </div>
 
+            {# ══ CONTENIDO PRINCIPAL ══ #}
             <div class="col-lg-9">
-                
-                <div class="panel-section mb-5 shadow-sm border-0" style="background: #fffdf0; border-left: 5px solid #ffc107 !important; border-radius: 15px; padding: 25px;">
+
+                <div class="panel-section mb-5 shadow-sm border-0"
+                     style="background:#fffdf0;border-left:5px solid #ffc107 !important;border-radius:15px;padding:25px;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3 class="panel-title m-0">🆘 Solicitudes de Ayuda</h3>
                         <span class="badge bg-warning text-dark">Peticiones actuales</span>
@@ -110,33 +232,53 @@
 
                     <div class="row g-4">
                         {% for n in necesidades %}
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="tarjeta-necesidad-{{ n.id }}">
                             <div class="card card-necesidad h-100 border-0 shadow-sm">
                                 <div class="card-body p-4">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <small class="text-muted"><i class="far fa-calendar-alt"></i> Hasta: {{ n.fecha_limite }}</small>
+                                        <small class="text-muted">
+                                            <i class="far fa-calendar-alt"></i> Hasta: {{ n.fecha_limite }}
+                                        </small>
                                     </div>
-                                    <h5 class="fw-bold text-dark mb-1">{{ n.nombre }}</h5>
-                                    <p class="text-primary small fw-bold mb-3">📦 Necesita: {{ n.cantidad }}</p>
-                                    <p class="card-text text-muted small" style="line-height: 1.5;">{{ n.descripcion[:150] }}...</p>
+                                    <h5 class="fw-bold text-dark mb-1">🏢 {{ n.nombre_fundacion }}</h5>
+                                    
+                                    <div class="mb-3">
+                                        <p class="text-primary small fw-bold mb-1">📦 Cantidad solicitada: {{ n.cantidad }}</p>
+                                        <span class="badge bg-info text-dark" style="font-size: 0.85em;">🏷️ Categoría: {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+                                    </div>
+
+                                    <p class="card-text text-muted small" style="line-height:1.5;">
+                                        {{ n.descripcion[:150] }}...
+                                    </p>
                                 </div>
+                                
                                 <div class="card-footer bg-transparent border-0 p-4 pt-0">
-                                    <button 
-                                      class="btn btn-warning w-100 fw-bold py-2 shadow-sm"
-                                      style="border-radius: 12px;"
-                                      data-bs-toggle="modal"
-                                      data-bs-target="#modalDetalleAyuda"
-                                      onclick="mostrarDetalleAyuda('
-                                        {{ n.nombre|e }}',
-                                        '{{ n.descripcion|e }}',
-                                        '',
-                                        '{{ n.fecha_limite|e }}',
-                                        '{{ n.solicitante|e if n.solicitante else '' }}',
-                                        '{{ url_for('donar', necesidad_id=n.id) }}'
-                                      )"
-                                    >
-                                      🤝 AYUDAR AHORA
-                                    </button>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm visual-btn"
+                                                    style="border-radius:12px; font-size: 0.85rem;"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalDetalleAyuda"
+                                                    data-url="{{ url_for('donar', necesidad_id=n.id) }}"
+                                                    onclick="mostrarDetalleAyuda(
+                                                        '{{ n.nombre_fundacion|e }}',
+                                                        '{{ n.descripcion|e }}',
+                                                        '',
+                                                        '{{ n.fecha_limite|e }}',
+                                                        'Fundación Verificada',
+                                                        this.getAttribute('data-url')
+                                                    )">
+                                                🤝 AYUDAR
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
+                                                    style="border-radius:12px; font-size: 0.85rem;"
+                                                    onclick="if(confirm('¿Deseas ocultar esta solicitud?')) { document.getElementById('tarjeta-necesidad-{{ n.id }}').style.display='none'; }">
+                                                ❌ RECHAZAR
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -145,29 +287,33 @@
                             <p class="text-muted italic">No hay solicitudes de ayuda publicadas hoy.</p>
                         </div>
                         {% endfor %}
-                    <!-- Modal de Detalle de Solicitud de Ayuda -->
-                    <div class="modal fade" id="modalDetalleAyuda" tabindex="-1" aria-labelledby="modalDetalleAyudaLabel" aria-hidden="true">
+                    </div>
+
+                    {# Modal detalle ayuda #}
+                    <div class="modal fade" id="modalDetalleAyuda" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="modalDetalleAyudaLabel">Detalle de la Solicitud</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    <h5 class="modal-title">Detalle de la Solicitud</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <h5 id="modalFundacion"></h5>
                                     <p id="modalDescripcion"></p>
-                                    <!-- <p><strong>Urgencia:</strong> <span id="modalUrgencia"></span></p> -->
                                     <p><strong>Fecha:</strong> <span id="modalFecha"></span></p>
                                     <p><strong>Solicitante:</strong> <span id="modalSolicitante"></span></p>
                                 </div>
                                 <div class="modal-footer">
-                                    <a id="modalDonarBtn" href="#" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">🤝 Donar a esta Fundación</a>
+                                    <a id="modalDonarBtn" href="#"
+                                       class="btn btn-warning w-100 fw-bold py-2 shadow-sm">
+                                        🤝 Donar a esta Fundación
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    </div>
                 </div>
+            </div>
 
                 <div class="panel-section mb-4">
                     <h3 class="panel-title mb-3">🔍 Rastrear y Reportar Donaciones</h3>
@@ -175,27 +321,35 @@
                         <form method="GET" action="{{ url_for('home_donador') }}" class="row g-2">
                             <div class="col-md-10 mb-2">
                                 <label class="small fw-bold">Correo Destinatario (Para enviar Reporte PDF)</label>
-                                <input type="email" name="correo_reporte" class="form-control form-control-sm" placeholder="ejemplo@correo.com" value="{{ request.args.get('correo_reporte', '') }}">
+                                <input type="email" name="correo_reporte"
+                                       class="form-control form-control-sm"
+                                       placeholder="ejemplo@correo.com"
+                                       value="{{ request.args.get('correo_reporte', '') }}">
                             </div>
                             <div class="col-md-2 d-flex align-items-end mb-2">
-                                <button type="submit" name="accion" value="reporte" class="btn btn-danger btn-sm w-100 fw-bold">📧 Enviar Reporte al Correo</button>
+                                <button type="submit" name="accion" value="reporte"
+                                        class="btn btn-danger btn-sm w-100 fw-bold">
+                                    📧 Enviar Reporte al Correo
+                                </button>
                             </div>
                             <hr class="my-2">
                             <div class="col-md-3">
                                 <label class="small fw-bold">Palabra clave</label>
-                                <input type="text" name="q" class="form-control form-control-sm" placeholder="Descripción..." value="{{ request.args.get('q', '') }}">
+                                <input type="text" name="q" class="form-control form-control-sm"
+                                       placeholder="Descripción..." value="{{ request.args.get('q', '') }}">
                             </div>
                             <div class="col-md-3">
-                                <label class="small fw-bold">Donante</label>
-                                <input type="text" name="donante" class="form-control form-control-sm" placeholder="Nombre..." value="{{ request.args.get('donante', '') }}">
+                                <label class="small fw-bold">Fundación destino</label>
+                                <input type="text" name="fundacion" class="form-control form-control-sm"
+                                       placeholder="Nombre fundación..." value="{{ request.args.get('fundacion', '') }}">
                             </div>
                             <div class="col-md-2">
                                 <label class="small fw-bold">Categoría</label>
                                 <select name="cat" class="form-select form-select-sm">
                                     <option value="">Todas</option>
                                     <option value="Alimentos" {% if request.args.get('cat') == 'Alimentos' %}selected{% endif %}>Alimentos</option>
-                                    <option value="Ropa" {% if request.args.get('cat') == 'Ropa' %}selected{% endif %}>Ropa</option>
-                                    <option value="Otros" {% if request.args.get('cat') == 'Otros' %}selected{% endif %}>Otros</option>
+                                    <option value="Ropa"      {% if request.args.get('cat') == 'Ropa'      %}selected{% endif %}>Ropa</option>
+                                    <option value="Otros"     {% if request.args.get('cat') == 'Otros'     %}selected{% endif %}>Otros</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -203,20 +357,19 @@
                                 <select name="est" class="form-select form-select-sm">
                                     <option value="">Todos</option>
                                     <option value="pendiente" {% if request.args.get('est') == 'pendiente' %}selected{% endif %}>Pendiente</option>
-                                    <option value="recibido" {% if request.args.get('est') == 'recibido' %}selected{% endif %}>Realizadas</option>
+                                    <option value="recibido"  {% if request.args.get('est') == 'recibido'  %}selected{% endif %}>Realizadas</option>
                                     <option value="rechazado" {% if request.args.get('est') == 'rechazado' %}selected{% endif %}>Rechazado</option>
                                 </select>
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" name="accion" value="buscar" class="btn btn-primary btn-sm w-100 fw-bold">🔍 BUSCAR</button>
+                                <button type="submit" name="accion" value="buscar"
+                                        class="btn btn-primary btn-sm w-100 fw-bold">🔍 BUSCAR</button>
                             </div>
                         </form>
                     </div>
                 </div>
 
                 <div id="mis-donaciones-realizadas" class="panel-section shadow-sm">
-                                    
-                   
                     <div class="table-container mt-3">
                         <table class="table-donaciones table w-100">
                             <thead class="table-dark">
@@ -238,7 +391,9 @@
                                     <td>{{ d.cantidad }}</td>
                                     <td>{{ d.fecha }}</td>
                                     <td>
-                                        <span class="badge estado-{{ d.estado_donante }}">{{ d.estado_donante | title }}</span>
+                                        <span class="badge estado-{{ d.estado_donante }}">
+                                            {{ d.estado_donante | capitalize }}
+                                        </span>
                                     </td>
                                 </tr>
                                 {% else %}
@@ -263,43 +418,44 @@
         <div class="container text-center">
             <h2 class="fw-bold">¿Tienes algo que compartir hoy?</h2>
             <p class="lead">Tu pequeña acción genera un gran cambio.</p>
-            <a href="{{ url_for('donar') }}" class="btn btn-light btn-lg mt-3 fw-bold px-5">🚀 REALIZAR NUEVA DONACIÓN</a>
+            <a href="{{ url_for('donar') }}"
+               class="btn btn-light btn-lg mt-3 fw-bold px-5">🚀 REALIZAR NUEVA DONACIÓN</a>
         </div>
     </div>
 {% endblock %}
 
 {% block scripts %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth' });
-                    }
-                });
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) target.scrollIntoView({ behavior: 'smooth' });
             });
         });
+    });
 
-        // Script para llenar el modal de detalle de ayuda
-        window.mostrarDetalleAyuda = function(nombre, descripcion, urgencia, fecha, solicitante, urlDonar) {
-          document.getElementById('modalFundacion').textContent = nombre;
-          document.getElementById('modalDescripcion').textContent = descripcion;
-          document.getElementById('modalUrgencia').textContent = urgencia;
-          document.getElementById('modalFecha').textContent = fecha;
-          document.getElementById('modalSolicitante').textContent = solicitante;
-          document.getElementById('modalDonarBtn').href = urlDonar;
+    window.mostrarDetalleAyuda = function(nombre, descripcion, urgencia, fecha, solicitante, urlDonar) {
+        // Aseguramos que busque los elementos correctos en tu modal flotante
+        if (document.getElementById('modalFundacion')) {
+            document.getElementById('modalFundacion').textContent = nombre;
         }
-    </script>
+        if (document.getElementById('modalDescripcion')) {
+            document.getElementById('modalDescripcion').textContent = descripcion;
+        }
+        if (document.getElementById('modalFecha')) {
+            document.getElementById('modalFecha').textContent = fecha;
+        }
+        if (document.getElementById('modalSolicitante')) {
+            document.getElementById('modalSolicitante').textContent = solicitante;
+        }
+        
+        // Configura el enlace final para el botón "Donar" dentro del modal
+        let btnDonar = document.getElementById('modalDonarBtn');
+        if (btnDonar) {
+            btnDonar.setAttribute('href', urlDonar);
+        }
+    }
+</script>
 {% endblock %}
-
-{% if donador.estado == 'aprobado' %}
-                        <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
-                    {% elif donador.estado == 'pendiente' %}
-                        <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
-                    {% elif donador.estado == 'rechazado' %}
-                        <span class="badge bg-danger d-block text-center mb-3">❌ Donante Rechazado</span>
-                    {% else %}
-                        <span class="badge bg-secondary d-block text-center mb-3">❓ {{ donador.estado | default('Sin Estado') }}</span>
-                    {% endif %}

@@ -20,9 +20,9 @@
                         
                         <div class="col-md-6">
                             <label class="form-label fw-bold">📦 Categoría del Recurso</label>
-                            <select name="categoria" class="form-select form-control-lg" required>
+                            <select id="selectCategoria" name="categoria" class="form-select form-control-lg" required>
                                 <option value="" selected disabled>Seleccione una categoría...</option>
-                                <option value="Alimentos">Alimentos (No perecederos / Frescos)</option>
+                                <option value="Alimentos">Alimentos No Perecederos</option>
                                 <option value="Ropa">Ropa y Calzado</option>
                                 <option value="Higiene">Artículos de Higiene Personal</option>
                                 <option value="Educación">Material Escolar / Libros</option>
@@ -35,6 +35,11 @@
                             <label class="form-label fw-bold">🔢 Cantidad Requerida</label>
                             <input type="text" name="cantidad" class="form-control form-control-lg" 
                                    placeholder="Ej: 20 bolsas de arroz..." required>
+                        </div>
+
+                        <div class="col-md-6" id="campoVencimiento" style="display: none;">
+                            <label class="form-label fw-bold text-danger">⚠️ Fecha de Caducidad Recomendada</label>
+                            <input type="date" name="fecha_vencimiento" class="form-control form-control-lg border-danger">
                         </div>
 
                         <div class="col-md-6">
@@ -98,4 +103,20 @@
         <p class="text-muted mb-0 small">Al publicar, tu solicitud aparecerá en el muro público de donantes de Red Solidaria.</p>
     </div>
 </div>
+
+<script>
+document.getElementById('selectCategoria').addEventListener('change', function() {
+    var campoVencimiento = document.getElementById('campoVencimiento');
+    var inputVencimiento = campoVencimiento.querySelector('input');
+    
+    if (this.value === 'Alimentos') {
+        campoVencimiento.style.display = 'block';
+        inputVencimiento.setAttribute('required', 'true'); // Lo hace obligatorio si es Alimentos
+    } else {
+        campoVencimiento.style.display = 'none';
+        inputVencimiento.removeAttribute('required');
+        inputVencimiento.value = ''; // Limpia el valor si cambian de opinión
+    }
+});
+</script>
 {% endblock %}

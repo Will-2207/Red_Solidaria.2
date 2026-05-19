@@ -10,6 +10,9 @@ public class EmailRequest {
     private String nombreFundacion;
     private String estado;
 
+    // ── NUEVO: motivo/mensaje para notificaciones como ELIMINADO ──
+    private String mensaje;
+
     // Campos para el reporte
     private String nit;
     private int cantidadDonaciones;
@@ -20,11 +23,12 @@ public class EmailRequest {
     // Listas para el PDF
     private List<Map<String, Object>> donaciones;
 
-    // ── NUEVOS: para el reporte admin con 3 secciones ──
+    // Para el reporte admin con 3 secciones
     private List<Map<String, Object>> fundaciones;
     private List<Map<String, Object>> donantes;
 
-    // Getters y Setters existentes
+    // ── Getters y Setters ──
+
     public String getNombreDonador() { return nombreDonador; }
     public void setNombreDonador(String nombreDonador) { this.nombreDonador = nombreDonador; }
 
@@ -36,6 +40,9 @@ public class EmailRequest {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public String getMensaje() { return mensaje; }
+    public void setMensaje(String mensaje) { this.mensaje = mensaje; }
 
     public String getNit() { return nit; }
     public void setNit(String nit) { this.nit = nit; }
@@ -55,7 +62,6 @@ public class EmailRequest {
     public List<Map<String, Object>> getDonaciones() { return donaciones; }
     public void setDonaciones(List<Map<String, Object>> donaciones) { this.donaciones = donaciones; }
 
-    // ── Getters y Setters NUEVOS ──
     public List<Map<String, Object>> getFundaciones() { return fundaciones; }
     public void setFundaciones(List<Map<String, Object>> fundaciones) { this.fundaciones = fundaciones; }
 
