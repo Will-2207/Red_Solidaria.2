@@ -70,12 +70,16 @@ public class PdfService {
             System.out.println("⚠️ Logo no encontrado en la ruta especificada."); 
         }
 
-        // Títulos
-        document.add(new Paragraph("RED SOLIDARIA")
+        // Títulos DINÁMICOS (Muestra el nombre real de la Fundación debajo del logo)
+        String tituloEncabezado = (datos.getNombreFundacion() != null && !datos.getNombreFundacion().isEmpty()) 
+            ? datos.getNombreFundacion().toUpperCase() 
+            : "RED SOLIDARIA";
+
+        document.add(new Paragraph(tituloEncabezado)
             .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
-            .setBold().setFontSize(26).setMarginTop(5));
+            .setBold().setFontSize(22).setMarginTop(5));
         
-        document.add(new Paragraph("Reporte de Impacto de Donaciones")
+        document.add(new Paragraph("Reporte de Impacto de Donaciones Recibidas")
             .setFontColor(DeviceRgb.WHITE).setTextAlignment(TextAlignment.CENTER)
             .setFontSize(13).setMarginBottom(45));
 

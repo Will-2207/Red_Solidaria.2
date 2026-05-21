@@ -200,208 +200,206 @@
 
 </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <nav class="navbar navbar-expand-lg navbar-custom shadow-sm bg-white">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('inicio') }}">
-                <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo Red Solidaria" class="logo-responsive" style="height: 50px;">
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <div class="navbar-nav me-auto mb-2 mb-lg-0 gap-2">
+<nav class="navbar navbar-expand-lg navbar-custom shadow-sm bg-white">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center text-decoration-none" href="{{ url_for('inicio') }}">
+            <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo Red Solidaria" class="logo-responsive" style="height: 50px;">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="navbar-nav me-auto mb-2 mb-lg-0 gap-2">
 
     {% if session.get('usuario_id') %}
-    {% if session.get('rol') == 2 or session.get('rol') == '2' %}
-        <a href="{{ url_for('home_donador') }}"  class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
-        <a href="{{ url_for('donar') }}"          class="nav-link nav-link-gradiente">🎁 Donar</a>
-    {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
-        <a href="{{ url_for('home_fundacion') }}"  class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
-        <a href="{{ url_for('solicitar_ayuda') }}" class="nav-link nav-link-gradiente">📤 Solicitar Ayuda</a>
-    {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
-        <a href="{{ url_for('home_administrador') }}" class="nav-link nav-link-gradiente">🛡️ Admin</a>
-        <a href="{{ url_for('reporte_admin') }}"       class="nav-link nav-link-gradiente">📊 Reporte Admin</a>
-        
-        <div style="display: inline-flex; align-items: center; position: relative;">
-            <a href="{{ url_for('soporte_incidencias') }}" class="nav-link nav-link-gradiente">🎧 Soporte</a>
+        {% if session.get('rol') == 2 or session.get('rol') == '2' %}
+            <a href="{{ url_for('home_donador') }}"  class="nav-link nav-link-gradiente">🏠 Mi Panel</a>
+            <a href="{{ url_for('donar') }}"          class="nav-link nav-link-gradiente">🎁 Donar</a>
+        {% elif session.get('rol') == 3 or session.get('rol') == '3' %}
+            <a href="{{ url_for('home_fundacion') }}"  class="nav-link nav-link-gradiente">🏛️ Panel Fundación</a>
+            <a href="{{ url_for('solicitar_ayuda') }}" class="nav-link nav-link-gradiente">📤 Solicitar Ayuda</a>
+        {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
+            <a href="{{ url_for('home_administrador') }}" class="nav-link nav-link-gradiente">🛡️ Admin</a>
+            <a href="{{ url_for('reporte_admin') }}"       class="nav-link nav-link-gradiente">📊 Reporte Admin</a>
             
-            <div id="contNotif" style="position: relative; margin-left: 5px; display: none;">
-                <span id="badgeInc" style="position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; border: 1px solid white;">0</span>
-                <span id="campanaAnim" style="font-size: 18px;">🔔</span>
+            <div style="display: inline-flex; align-items: center; position: relative;">
+                <a href="{{ url_for('soporte_incidencias') }}" class="nav-link nav-link-gradiente">🎧 Soporte</a>
                 
-                <div id="msjIncidencia" style="position: absolute; left: 25px; top: -5px; background: #2f3542; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; white-space: nowrap; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-                    ¡Incidencia nueva!
+                <div id="contNotif" style="position: relative; margin-left: 5px; display: none;">
+                    <span id="badgeInc" style="position: absolute; top: -8px; right: -8px; background: #ff4757; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; border: 1px solid white;">0</span>
+                    <span id="campanaAnim" style="font-size: 18px;">🔔</span>
+                    
+                    <div id="msjIncidencia" style="position: absolute; left: 25px; top: -5px; background: #2f3542; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; white-space: nowrap; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                        ¡Incidencia nueva!
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
+    {% else %}
+        <a href="{{ url_for('inicio') }}"   class="nav-link nav-link-gradiente">🏠 Inicio</a>
+        <a href="{{ url_for('registro') }}" class="nav-link nav-link-gradiente">🎁 ¡Dona Ahora!</a>
     {% endif %}
-{% else %}
-    <a href="{{ url_for('inicio') }}"   class="nav-link nav-link-gradiente">🏠 Inicio</a>
-    <a href="{{ url_for('registro') }}" class="nav-link nav-link-gradiente">🎁 ¡Dona Ahora!</a>
+
+            </div>
+
+            {# ── BOTÓN CUENTA — CORREGIDO PARA TODOS LOS ROLES (INCLUYE FUNDACIÓN) ── #}
+            <div class="navbar-nav ms-auto gap-2 align-items-center">
+                {% if session.get('usuario_id') or session.get('nombre') or fundacion %}
+                <button class="btn-google-account" id="btnGoogleAccount" onclick="toggleGooglePopup(event)">
+                    <div class="avatar-mini">
+                        {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
+                            {% if fundacion and fundacion.foto_perfil %}
+                                <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
+                            {% elif session.get('foto_perfil') %}
+                                <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                            {% else %}
+                                {{ fundacion.nombre[0]|upper if fundacion else 'F' }}
+                            {% endif %}
+                        {% else %}
+                            {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
+                                <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                            {% else %}
+                                {{ session['nombre'][0]|upper if session.get('nombre') else 'U' }}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <span class="account-name">
+                        {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
+                            {{ fundacion.nombre.split(' ')[0] if fundacion else 'Fundación' }}
+                        {% else %}
+                            {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}
+                        {% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down" style="font-size:0.65rem;color:#aaa;margin-left:2px;"></i>
+                </button>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link nav-link-gradiente fw-bold">
+                        🔑 Iniciar Sesión
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+{# ══ POPUP ESTILO GOOGLE ══ #}
+{% if session.get('usuario_id') or session.get('nombre') or fundacion %}
+<div id="googlePopupBackdrop" onclick="cerrarGooglePopup()"></div>
+<div id="googleAccountPopup">
+
+    <div class="gp-header">
+        <button class="gp-close" onclick="cerrarGooglePopup()">✕</button>
+
+        <div class="gp-avatar-circle">
+            {% if fundacion %}
+                {% if fundacion.foto_perfil %}
+                    <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
+                {% else %}
+                    {{ fundacion.nombre[0]|upper if fundacion.nombre else 'F' }}
+                {% endif %}
+            {% else %}
+                {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
+                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
+                {% else %}
+                    {{ session['nombre'][0]|upper if session.get('nombre') else 'F' }}
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="gp-saludo">
+            {% if fundacion %}
+                ¡Hola, {{ (session.get('usuario_encargado') or fundacion.usuario_encargado or 'Encargado').split(' ')[0] }}!
+            {% else %}
+                ¡Hola, {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}!
+            {% endif %}
+        </div>
+
+        <div class="gp-email">
+            {% if fundacion %}
+                {{ fundacion.correo }}
+            {% else %}
+                {{ session['correo'] if session.get('correo') else '' }}
+            {% endif %}
+        </div>
+
+        {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
+            <span class="gp-rol-badge gp-rol-fundacion">🏛️ Fundación Activa</span>
+        {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
+            <span class="gp-rol-badge gp-rol-admin">🛡️ Administrador</span>
+        {% elif session.get('rol') == 2 or session.get('rol') == '2' %}
+            <span class="gp-rol-badge gp-rol-donador">🙋 Donador</span>
+        {% endif %}
+    </div>
+
+    <div class="gp-body">
+        <div class="gp-info-row">
+            <i class="fas fa-user"></i>
+            <span>
+                {% if fundacion and fundacion.nombre %}
+                    {{ fundacion.nombre }}
+                {% elif session.get('fundacion_nombre') %}
+                    {{ session.get('fundacion_nombre') }}
+                {% else %}
+                    {{ session.get('nombre') if session.get('nombre') else 'Fundación sin Nombre' }}
+                {% endif %}
+            </span>
+        </div>
+
+        {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
+        <div class="gp-info-row">
+            <i class="fas fa-user-tie"></i>
+            <span><strong>Encargado:</strong> {{ session.get('usuario_encargado') or (fundacion.usuario_encargado if fundacion else 'No asignado') }}</span>
+        </div>
+        {% endif %}
+        
+        {% if fundacion and fundacion.telefono %}
+        <div class="gp-info-row">
+            <i class="fas fa-phone"></i>
+            <span>{{ fundacion.telefono }}</span>
+        </div>
+        {% elif session.get('telefono') %}
+        <div class="gp-info-row">
+            <i class="fas fa-phone"></i>
+            <span>{{ session['telefono'] }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <a href="{{ url_for('editar_perfil') }}" class="gp-btn-perfil" onclick="cerrarGooglePopup()">
+        ✏️ Administrar mi Cuenta
+    </a>
+
+    <a href="/soporte/nuevo" class="gp-btn-perfil" style="margin-top: 5px; border-color: #43c98a; color: #157347;" onclick="cerrarGooglePopup()">
+        🎧 Soporte Técnico
+    </a>
+
+    <div class="gp-footer">
+        <a href="{{ url_for('logout') }}" class="gp-btn-salir">
+            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+        </a>
+    </div>
+
+</div>
 {% endif %}
 
-                </div>
+<main style="padding-top: 20px; min-height: 70vh;">
+    {% block content %}{% endblock %}
+</main>
 
-                {# ── BOTÓN CUENTA — CORREGIDO PARA TODOS LOS ROLES (INCLUYE FUNDACIÓN) ── #}
-                <div class="navbar-nav ms-auto gap-2 align-items-center">
-                    {% if session.get('usuario_id') or session.get('nombre') or fundacion %}
-                    <button class="btn-google-account" id="btnGoogleAccount" onclick="toggleGooglePopup(event)">
-                        <div class="avatar-mini">
-                            {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
-                                {% if fundacion and fundacion.foto_perfil %}
-                                    <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
-                                {% elif session.get('foto_perfil') %}
-                                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
-                                {% else %}
-                                    {{ fundacion.nombre[0]|upper if fundacion else 'F' }}
-                                {% endif %}
-                            {% else %}
-                                {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
-                                    <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
-                                {% else %}
-                                    {{ session['nombre'][0]|upper if session.get('nombre') else 'U' }}
-                                {% endif %}
-                            {% endif %}
-                        </div>
-                        <span class="account-name">
-                            {% if session.get('rol') == 3 or session.get('rol') == '3' or fundacion %}
-                                {{ fundacion.nombre.split(' ')[0] if fundacion else 'Fundación' }}
-                            {% else %}
-                                {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}
-                            {% endif %}
-                        </span>
-                        <i class="fas fa-chevron-down" style="font-size:0.65rem;color:#aaa;margin-left:2px;"></i>
-                    </button>
-                    {% else %}
-                        <a href="{{ url_for('login') }}" class="nav-link nav-link-gradiente fw-bold">
-                            🔑 Iniciar Sesión
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    {# ══ POPUP ESTILO GOOGLE — CORREGIDO PARA MOSTRAR LOS DATOS DE LA FUNDACIÓN ADENTRO ══ #}
-    {% if session.get('usuario_id') or session.get('nombre') or fundacion %}
-    <div id="googlePopupBackdrop" onclick="cerrarGooglePopup()"></div>
-    <div id="googleAccountPopup">
-
-        <div class="gp-header">
-            <button class="gp-close" onclick="cerrarGooglePopup()">✕</button>
-
-            <div class="gp-avatar-circle">
-                {% if fundacion %}
-                    {% if fundacion.foto_perfil %}
-                        <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" alt="Foto perfil">
-                    {% else %}
-                        {{ fundacion.nombre[0]|upper }}
-                    {% endif %}
-                {% else %}
-                    {% if session.get('foto_perfil') and session['foto_perfil'] != '' %}
-                        <img src="{{ url_for('static', filename='img/' + session['foto_perfil']) }}" alt="Foto perfil">
-                    {% else %}
-                        {{ session['nombre'][0]|upper if session.get('nombre') else 'F' }}
-                    {% endif %}
-                {% endif %}
-            </div>
-
-            <div class="gp-saludo">
-                {% if fundacion %}
-                    {# MODIFICADO: Arriba muestra el nombre del encargado (Ronald) #}
-                    ¡Hola, {{ session.get('nombre').split(' ')[0] if session.get('nombre') else (fundacion.usuario_encargado.split(' ')[0] if fundacion.usuario_encargado else 'Encargado') }}!
-                {% else %}
-                    ¡Hola, {{ session['nombre'].split(' ')[0] if session.get('nombre') else 'Usuario' }}!
-                {% endif %}
-            </div>
-
-            <div class="gp-email">
-                {% if fundacion %}
-                    {{ fundacion.correo }}
-                {% else %}
-                    {{ session['correo'] if session.get('correo') else '' }}
-                {% endif %}
-            </div>
-
-            {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
-                <span class="gp-rol-badge gp-rol-fundacion">🏛️ Fundación Activa</span>
-            {% elif session.get('rol') == 1 or session.get('rol') == '1' %}
-                <span class="gp-rol-badge gp-rol-admin">🛡️ Administrador</span>
-            {% elif session.get('rol') == 2 or session.get('rol') == '2' %}
-                <span class="gp-rol-badge gp-rol-donador">🙋 Donador</span>
-            {% endif %}
-        </div>
-
-        <div class="gp-body">
-            <div class="gp-info-row">
-                <i class="fas fa-user"></i>
-                <span>
-                    {# MODIFICADO: Por defecto fuera del saludo muestra el nombre de la fundación registrada #}
-                    {% if fundacion %}
-                        {{ fundacion.nombre }}
-                    {% else %}
-                        {{ session['nombre'] if session.get('nombre') else 'Nombre no registrado' }}
-                    {% endif %}
-                </span>
-            </div>
-
-            {# ── INYECCIÓN EXCLUSIVA DEL ENCARGADO PARA EL ROL DE FUNDACIÓN ── #}
-            {% if fundacion or session.get('rol') == 3 or session.get('rol') == '3' %}
-            <div class="gp-info-row">
-                <i class="fas fa-user-tie"></i>
-                <span><strong>Encargado:</strong> {{ session.get('nombre') if session.get('nombre') else (fundacion.usuario_encargado if fundacion else 'No asignado') }}</span>
-            </div>
-            {% endif %}
-            
-            {% if fundacion and fundacion.telefono %}
-            <div class="gp-info-row">
-                <i class="fas fa-phone"></i>
-                <span>{{ fundacion.telefono }}</span>
-            </div>
-            {% elif session.get('telefono') %}
-            <div class="gp-info-row">
-                <i class="fas fa-phone"></i>
-                <span>{{ session['telefono'] }}</span>
-            </div>
-            {% endif %}
-        </div>
-
-        <a href="{{ url_for('editar_perfil') }}" class="gp-btn-perfil" onclick="cerrarGooglePopup()">
-            ✏️ Administrar mi Cuenta
-        </a>
-
-        <a href="/soporte/nuevo" class="gp-btn-perfil" style="margin-top: 5px; border-color: #43c98a; color: #157347;" onclick="cerrarGooglePopup()">
-            🎧 Soporte Técnico
-        </a>
-
-        <div class="gp-footer">
-            <a href="{{ url_for('logout') }}" class="gp-btn-salir">
-                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+<footer class="bg-dark text-white text-center mt-auto" style="border-top: 4px solid #63ff5e; padding: 25px 20px;">
+    <div class="container">
+        <h6 class="fw-bold mb-2">Red Solidaria</h6>
+        <p class="small mb-2">Conectando solidaridad con quienes más lo necesitan</p>
+        <p class="mb-2">
+            <a href="mailto:soporte@redsolidaria.com" style="font-size:1rem;color:#0000FF;text-decoration:underline;font-weight:500;">
+                soporte@redsolidaria.com
             </a>
-        </div>
-
+        </p>
+        <p class="xsmall mb-0" style="font-size:0.75rem;opacity:0.8;">© 2026 Red Solidaria - Uniendo Corazones</p>
     </div>
-    {% endif %}
+</footer>
 
-    <main style="padding-top: 20px; min-height: 70vh;">
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="bg-dark text-white text-center mt-auto" style="border-top: 4px solid #63ff5e; padding: 25px 20px;">
-        <div class="container">
-            <h6 class="fw-bold mb-2">Red Solidaria</h6>
-            <p class="small mb-2">Conectando solidaridad con quienes más lo necesitan</p>
-            <p class="mb-2">
-                <a href="mailto:soporte@redsolidaria.com" style="font-size:1rem;color:#0000FF;text-decoration:underline;font-weight:500;">
-                    soporte@redsolidaria.com
-                </a>
-            </p>
-            <p class="xsmall mb-0" style="font-size:0.75rem;opacity:0.8;">© 2026 Red Solidaria - Uniendo Corazones</p>
-        </div>
-    </footer>
-
-    {% block scripts %}{% endblock %}
-
+{% block scripts %}{% endblock %}
 <script>
     // --- LÓGICA DE INCIDENCIAS ---
     let ultimaCuenta = 0;

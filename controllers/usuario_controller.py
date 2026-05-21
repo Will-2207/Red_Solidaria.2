@@ -287,37 +287,43 @@ class UsuarioController:
         if not fundacion:
             return "Error: No se encontraron datos de la fundación."
 
-        # CORREGIDO: Sincronizamos guardando la fundación Y el encargado por separado sin pisar session['nombre']
+        # CORREGIDO: Usamos los nuevos alias del modelo para que no se pisen en el Popup
         if fundacion:
-            session['fundacion_nombre'] = fundacion.get('nombre')
-            session['usuario_encargado'] = fundacion.get('usuario_encargado')
+            session['fundacion_nombre'] = fundacion.get('nombre_fundacion')
+            session['usuario_encargado'] = fundacion.get('nombre_encargado') # <-- AQUÍ CAPTURA TU NOMBRE REAL
             if fundacion.get('foto_perfil'):
                 session['foto_perfil'] = fundacion['foto_perfil']
 
-        # 3. Captura de filtros desde la URL y NORMALIZACIÓN DE ESTADO
+        # 3. Captura de filtros desde la URL y NORMALIZACIÓN DE ESTADO Y CATEGORÍA
         fundacion_id = fundacion["id"]
         query = request.args.get('q', '')
         donante = request.args.get('donante', '')
-        categoria = request.args.get('categoria', '')
         accion = request.args.get('accion')
         correo_reporte = request.args.get('correo_reporte')
         
+        # --- NORMALIZACIÓN DE CATEGORÍA (Evita fallos por mayúsculas/minúsculas) ---
+        categoria_raw = request.args.get('categoria', '')
+        if categoria_raw and categoria_raw.lower() != 'todas':
+            categoria_filtro = categoria_raw.lower().strip()
+        else:
+            categoria_filtro = categoria_raw  # Mantiene 'Todas' o vacío
+
         # --- Lógica de normalización para que el filtro funcione (rechazada -> rechazado) ---
         estado_raw = request.args.get('est', '').lower()
-        if estado_raw in ['rechazada', 'rechazado']:
+        if estado_raw in ['rechazada', 'rechazado', 'rechazados']:
             estado_filtro = 'rechazado'
-        elif estado_raw in ['recibida', 'recibido']:
+        elif estado_raw in ['recibida', 'recibido', 'recibidos']:
             estado_filtro = 'recibido'
         else:
             estado_filtro = estado_raw
 
-        # 4. Obtener donaciones filtradas usando el estado normalizado
+        # 4. Obtener donaciones filtradas usando el estado y categoría normalizados
         donacion_model = DonacionModel()
         mis_donaciones = donacion_model.obtener_donaciones_por_fundacion(
             fundacion_id, 
             q=query, 
             donante=donante, 
-            categoria=categoria, 
+            categoria=categoria_filtro, # <-- Enviado normalizado
             estado=estado_filtro
         )
         
@@ -339,7 +345,8 @@ class UsuarioController:
                 flash("Por favor, ingresa un correo para el reporte", "warning")
             else:
                 try:
-                    url_java = f"http://localhost:8080/api/email/enviar-reporte?fundacion_id={fundacion_id}"
+                    # CORRECCIÓN DE ENDPOINT: Apuntamos al servicio exclusivo de fundaciones
+                    url_java = f"http://localhost:8080/api/email/enviar-reporte-fundacion"
                     desglose_dict = {}
                     
                     for d in mis_donaciones:
@@ -369,8 +376,8 @@ class UsuarioController:
                         "cantidadDonaciones": total_donaciones,
                         "donaciones": lista_desglosada,
                         "fundacionId": fundacion_id,
-                        "categoriaFiltrada": categoria,
-                        "estadoFiltrado": estado_filtro
+                        "categoriaFiltrada": categoria_raw,
+                        "estadoFiltrado": estado_raw
                     }
                     
                     datos_limpios = json.loads(json.dumps(payload, default=serializar_datos))
@@ -385,8 +392,8 @@ class UsuarioController:
                     print(f"❌ Error de conexión con Java: {e}")
                     flash("No se pudo conectar con el servicio de correos", "danger")
                     
-        # 6. Preparar datos adicionales
-        solicitudes_ayuda = donacion_model.obtener_necesidades_activas()
+        # 6. Preparar datos adicionales (CORREGIDO para filtrar por tu fundación)
+        solicitudes_ayuda = donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
         motivos_eliminacion = self.modelo.obtener_motivos_eliminacion()
 
         # 7. Retorno al Template
@@ -399,7 +406,7 @@ class UsuarioController:
             stats=stats,
             q_actual=query,
             donante_actual=donante,
-            cat_actual=categoria,
+            cat_actual=categoria_raw,
             est_actual=estado_raw
         )
         

@@ -29,27 +29,29 @@ class DonacionModel:
         finally:
             conn.close()
             
-    def donaciones_por_usuario(self, usuario_id):
-        """Historial para el Panel del Donador (Lista simple)"""
+    def obtener_fundacion_por_usuario(self, usuario_id):
+        from database.db import get_connection
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # CORRECCIÓN: Cambiamos d.estado por d.estado_donante
+            # CORRECCIÓN: Usamos alias claros para que no se pisen los campos 'nombre'
             query = """
-                SELECT d.id, c.nombre as categoria, d.descripcion,
-                       d.cantidad, d.estado_donante, d.fecha, d.fotos
-                FROM donaciones d
-                LEFT JOIN categorias c ON d.categoria_id = c.id
-                WHERE d.usuario_id = %s
-                ORDER BY d.fecha DESC
+                SELECT f.id, f.usuario_id, f.nit, f.telefono, f.foto_perfil, f.descripcion,
+                    f.nombre AS nombre_fundacion, 
+                    u.nombre AS nombre_encargado, 
+                    u.correo, u.estado AS estado_usuario, f.estado_validacion
+                FROM fundaciones f
+                INNER JOIN usuarios u ON f.usuario_id = u.id
+                WHERE f.usuario_id = %s
             """
             cursor.execute(query, (usuario_id,))
-            return cursor.fetchall()
+            return cursor.fetchone()
         except Exception as e:
-            print(f"Error en donaciones_por_usuario: {e}")
-            return []
+            print(f"❌ Error en obtener_fundacion_por_usuario: {e}")
+            return None
         finally:
-            conn.close()
+            if conn:
+                conn.close()
 
     def buscar_reporte_admin(self, filtros):
         """Método para el panel de administración que resuelve el error 1054"""
@@ -109,23 +111,23 @@ class DonacionModel:
 
             # 2. Filtro por búsqueda de texto (Descripción)
             if q:
-                query += " AND d.descripcion LIKE %s"
-                params.append(f"%{q}%")
+                query += " AND LOWER(d.descripcion) LIKE %s"
+                params.append(f"%{q.lower().strip()}%")
 
-            # 3. Filtro por categoría
-            if categoria:
-                query += " AND d.categoria_id = %s"
-                params.append(categoria)
+            # 3. CORREGIDO: Filtro por el nombre de la categoría (en lugar del ID)
+            if categoria and categoria.lower() != 'todas' and categoria.strip() != '':
+                query += " AND LOWER(c.nombre) = %s"
+                params.append(categoria.lower().strip())
 
-            # 4. Filtro por estado (Usando estado_donante para evitar el error 1054)
-            if estado:
-                query += " AND d.estado_donante = %s"
-                params.append(estado)
+            # 4. CORREGIDO: Filtro por estado robusto con LOWER
+            if estado and estado.lower() != 'todos' and estado.strip() != '':
+                query += " AND LOWER(d.estado_donante) = %s"
+                params.append(estado.lower().strip())
             
             # 5. Filtro por nombre del donante
             if donante:
-                query += " AND u.nombre LIKE %s"
-                params.append(f"%{donante}%")
+                query += " AND LOWER(u.nombre) LIKE %s"
+                params.append(f"%{donante.lower().strip()}%")
 
             query += " ORDER BY d.fecha DESC"
 
@@ -138,6 +140,27 @@ class DonacionModel:
         finally:
             if conn:
                 conn.close()
+                
+    def obtener_necesidades_por_fundacion(self, fundacion_id):
+        from database.db import get_connection
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            query = """
+                SELECT n.*, c.nombre AS nombre_categoria
+                FROM necesidades n
+                LEFT JOIN categorias c ON n.categoria_id = c.id
+                WHERE n.fundacion_id = %s
+                ORDER BY n.id DESC
+            """
+            cursor.execute(query, (int(fundacion_id),))
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"❌ Error en obtener_necesidades_por_fundacion: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()            
                 
     def obtener_donaciones_por_usuario_filtrado(self, usuario_id, q=None, categoria=None, estado=None, fundacion=None):
         """Filtros multicriterio para el historial personal del Donador (Versión Final)."""

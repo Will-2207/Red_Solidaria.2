@@ -157,8 +157,9 @@
 <div class="admin-container mt-4">
     <div class="dashboard-header">
         <div>
-            <h1>🏛️ Panel {{ fundacion.nombre }}</h1>
-            <p>¡Hola! Gestiona tus donaciones y genera reportes de impacto.</p>
+            <h1>🏛️ Panel {% if fundacion and fundacion.nombre %}{{ fundacion.nombre }}{% else %}{{ session.get('nombre', 'Fundación') }}{% endif %}</h1>
+            
+            <p>¡Hola, {% if fundacion and fundacion.nombre %}{{ fundacion.nombre }}{% else %}{{ session.get('nombre', 'Fundación') }}{% endif %}! Gestiona tus donaciones y genera reportes de impacto.</p>
         </div>
     </div>
 
@@ -244,30 +245,61 @@
         {# ══ CONTENIDO PRINCIPAL ══ #}
         <div class="col-lg-9">
 
-            {# ── Solicitudes de Ayuda ── #}
-            <div class="panel-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-danger" style="font-size:1.1rem;">SOS</span>
-                        <h3 class="panel-title m-0">Solicitudes de Ayuda</h3>
+            {# ══ SECCIÓN SOLICITUDES DE AYUDA (PANEL FUNDACIÓN) ══ #}
+                <div class="panel-section mb-5 shadow-sm border-0"
+                     style="background:#fffdf0;border-left:5px solid #ffc107 !important;border-radius:15px;padding:25px;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="panel-title m-0">
+                        <i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda
+                    </h3>
+                    <span class="badge bg-warning text-dark">Tus peticiones creadas</span>
+                </div>
+
+                    <div class="row g-4">
+                        {% for n in solicitudes_ayuda %}
+                        <div class="col-md-6">
+                            <div class="card card-necesidad h-100 border-0 shadow-sm">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <small class="text-muted">
+                                            <i class="far fa-calendar-alt"></i> Vence: {{ n.fecha_limite if n.fecha_limite else 'N/A' }}
+                                        </small>
+                                        
+                                        {% if n.estado == 'pendiente' %}
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                        {% elif n.estado == 'asignada' %}
+                                            <span class="badge bg-primary">Asignada</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Completada</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <p class="card-text text-muted small" style="line-height:1.5;">
+                                            {{ n.descripcion }}
+                                        </p>
+                                    </div>
+
+                                    <div class="row pt-2 border-top">
+                                        <div class="col-6">
+                                            <small class="text-primary d-block fw-bold">📦 Cantidad:</small>
+                                            <span class="fw-bold text-dark">{{ n.cantidad }}</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-info d-block fw-bold">🏷️ Categoría:</small>
+                                            <span class="badge bg-light text-dark border">{{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-12 text-center py-4">
+                            <p class="text-muted italic">Aún no has publicado ninguna solicitud de ayuda.</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <a href="#" class="btn btn-warning btn-sm fw-bold">Peticiones actuales</a>
                 </div>
-                <div class="bg-light p-4 rounded shadow-sm" style="min-height:80px;">
-                    {% if solicitudes_ayuda and solicitudes_ayuda|length > 0 %}
-                        <ul class="list-group list-group-flush">
-                            {% for s in solicitudes_ayuda %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><strong>{{ s.titulo }}</strong> - {{ s.descripcion }}</span>
-                                    <span class="badge bg-primary">{{ s.fecha }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <div class="text-center text-muted">No hay solicitudes de ayuda publicadas hoy.</div>
-                    {% endif %}
-                </div>
-            </div>
 
             {# ── Rastrear y Reportar ── #}
             <div class="panel-section mb-4">
@@ -452,20 +484,22 @@
                     
                     <div class="mb-3">
                         <label for="nombre_fundacion" class="form-label fw-bold">Nombre de la Fundación</label>
-                        <input type="text" class="form-control" id="nombre_fundacion" name="nombre_fundacion" 
-                               value="{{ fundacion.get('nombre', session.get('nombre', '')) }}" required>
+                        {# Mantiene tus variables originales para que cargue la info de base #}
+                        <input type="text" class="form-control" id="nombre_fundacion" name="nombre" 
+                            value="{{ fundacion.nombre if fundacion else session.get('nombre', '') }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="usuario_encargado" class="form-label fw-bold">Usuario Encargado (Responsable)</label>
+                        {# CORREGIDO: Prioriza session.usuario_encargado para reflejar el cambio inmediato #}
                         <input type="text" class="form-control" id="usuario_encargado" name="usuario_encargado" 
-                               value="{{ fundacion.get('usuario_encargado', session.get('usuario_encargado', '')) }}" required>
+                            value="{{ session.get('usuario_encargado') or (fundacion.usuario_encargado if fundacion else '') }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="telefono" class="form-label fw-bold">Teléfono de Contacto</label>
                         <input type="text" class="form-control" id="telefono" name="telefono" 
-                               value="{{ fundacion.get('telefono', session.get('telefono', '')) }}" required>
+                            value="{{ fundacion.telefono if fundacion else session.get('telefono', '') }}" required>
                     </div>
 
                 </div>
@@ -473,7 +507,7 @@
                     <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary fw-bold">Guardar Cambios</button>
                 </div>
-            </form>
+</form>
         </div>
     </div>
 </div>
