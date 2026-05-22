@@ -11,7 +11,6 @@ from werkzeug.utils import secure_filename
 # Modelos
 from models.donacion_model import DonacionModel
 from models.soportemodel import SoporteModel
-from flask import jsonify
 
 # Controladores
 from controllers.auth_controller import AuthController
@@ -45,10 +44,9 @@ mail = Mail(app)
 # 1. Inicialización de Modelos
 soporte_model = SoporteModel(mysql)
 donacion_model = DonacionModel() # Sin mysql dentro, para evitar el TypeError
-donacion_ctrl = DonacionController(donacion_model)
-# 2. Inicialización de Controladores
 
-auth = AuthController()  # <--- ESTA ES LA LÍNEA QUE FALTA
+# 2. Inicialización de Controladores
+auth = AuthController()
 usuario_ctrl = UsuarioController()
 donacion_ctrl = DonacionController(donacion_model)
 soporte_controller = SoporteController(soporte_model, mail)
@@ -79,14 +77,12 @@ def resolver_ticket(id):
 
 @app.route('/api/contar_pendientes')
 def contar_pendientes():
-    # Consulta SQL: SELECT COUNT(*) FROM soporte_incidencias WHERE estado = 'abierto'
     total = soporte_model.contar_tickets_abiertos() 
     return jsonify({"pendientes": total})
 
 # ================= CONFIGURACIÓN APP =================
 
 # Registrar Blueprint de rutas API admin
-from controllers.home_administrador_controller import api_admin
 app.register_blueprint(api_admin)
 
 # ================= FUNCIONES DE UTILIDAD =================
@@ -100,7 +96,6 @@ def serializar_datos(obj):
 # ================= RUTA PARA GESTIONAR DONACIONES =================
 @app.route('/gestionar_donacion', methods=['POST'])
 def gestionar_donacion():
-    # Usamos la instancia global que ya tienes creada
     return donacion_ctrl.gestionar_donacion_accion()
 
 # ================= FUNCIONES DE COMUNICACIÓN CON JAVA =================
@@ -122,7 +117,7 @@ def enviar_reporte_pdf_java(payload):
         response = requests.post(url_java, json=datos_limpios, timeout=10)
         return response.status_code == 200
     except Exception as e:
-        print(f"Error enviando PDF a Java: {e}")
+        print(f"Error sending PDF to Java: {e}")
         return False
 
 # ================= RUTAS DE AUTENTICACIÓN =================
@@ -146,7 +141,6 @@ def logout():
 
 @app.route('/verificar_correo')
 def verificar_correo():
-    from flask import jsonify
     from models.usuario_model import UsuarioModel
     correo = request.args.get('correo', '')
     usuario = UsuarioModel().obtener_usuario_por_correo(correo)
@@ -166,12 +160,17 @@ def home_fundacion():
         return redirect(url_for('login'))
     return usuario_ctrl.home_fundacion_view()
 
-# ── NUEVA RUTA PARA ADMINISTRAR CUENTA EXCLUSIVA DE FUNDACIÓN ──
+@app.route('/fundacion/solicitudes-completo')
+def solicitudes_fundacion_completo():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return usuario_ctrl.solicitudes_completo_view()
+
 @app.route('/administrar_cuenta', methods=['GET', 'POST'])
 def administrar_cuenta():
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
-    return usuario_ctrl.administrar_cuenta_view() # <--- Llamará a este método en tu controlador
+    return usuario_ctrl.administrar_cuenta_view()
 
 @app.route('/home_administrador')
 def home_administrador():
@@ -179,7 +178,6 @@ def home_administrador():
         return redirect(url_for('login'))
     return mostrar_home_administrador()
 
-# ── REPORTE ADMIN: GET renderiza la página, POST/GET con JSON van al blueprint ──
 @app.route('/reporte_admin', methods=['GET'])
 def reporte_admin():
     if 'usuario_id' not in session:
@@ -187,7 +185,6 @@ def reporte_admin():
     return render_template('reporte_admin.html')
 
 # ================= RUTAS DE ACCIONES =================
-
 
 @app.route("/subir_foto", methods=["POST"])
 def subir_foto():
@@ -222,9 +219,25 @@ def rechazar_fundacion_ruta(id):
     if datos:
         return rechazar_fundacion_controller(id, datos['correo'], datos['nombre'])
 
+# ================= RUTAS DE GESTIÓN DE NECESIDADES =================
+
 @app.route('/solicitar-ayuda', methods=['GET', 'POST'])
 def solicitar_ayuda():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
     return donacion_ctrl.solicitar_ayuda_view(session)
+
+@app.route('/necesidad/editar/<int:id>', methods=['GET', 'POST'])
+def editar_necesidad_ruta(id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return donacion_ctrl.editar_necesidad_view(id, session)
+
+@app.route('/necesidad/eliminar/<int:id>')
+def eliminar_necesidad_ruta(id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return donacion_ctrl.eliminar_necesidad_accion(id, session)
 
 @app.route('/ver_perfil')
 def ver_perfil():
@@ -233,16 +246,18 @@ def ver_perfil():
 # Rutas para gestionar el estado de las donaciones desde el panel
 @app.route('/donacion/estado/<int:id>/<nuevo_estado>')
 def cambiar_estado_donacion(id, nuevo_estado):
-    from controllers.donacion_controller import DonacionController
-    controlador = DonacionController()
-    return controlador.cambiar_estado(id, nuevo_estado)
+    return donacion_ctrl.cambiar_estado(id, nuevo_estado)
 
 @app.route('/donacion/eliminar/<int:id>')
 def eliminar_donacion_ruta(id):
-    from controllers.donacion_controller import DonacionController
-    controlador = DonacionController()
-    return controlador.eliminar(id)
+    return donacion_ctrl.eliminar(id)
 
+# Nueva ruta para rechazar/ocultar una necesidad del carrusel del donante
+@app.route('/rechazar_necesidad/<int:necesidad_id>', methods=['POST'])
+def rechazar_necesidad(necesidad_id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return donacion_ctrl.rechazar_necesidad_accion(necesidad_id, session)
 
 # ================= RUN =================
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ class DonacionModel:
             cursor = conn.cursor()
             c_id = int(categoria_id) if categoria_id else 0
             
-            # INSERT directo: eliminamos la tabla intermedia y usamos tus columnas reales
             query = """
                 INSERT INTO donaciones 
                 (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, fotos)
@@ -28,15 +27,39 @@ class DonacionModel:
             return False
         finally:
             conn.close()
+
+    def registrar_donacion_con_necesidad(self, donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_id, fotos_str=None):
+        """NUEVO: Registra la donación asociando explícitamente el necesidad_id del carrusel."""
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            c_id = int(categoria_id) if categoria_id else 0
+            n_id = int(necesidad_id) if necesidad_id else None
+            
+            query = """
+                INSERT INTO donaciones 
+                (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, necesidad_id, fotos)
+                VALUES (%s, %s, %s, %s, %s, 'pendiente', NOW(), %s, %s)
+            """
+            cursor.execute(query, (donador_id, fundacion_id, c_id, cantidad, descripcion, n_id, fotos_str))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"❌ Error al registrar donación con necesidad_id {necesidad_id}: {e}")
+            return False
+        finally:
+            conn.close()
+            
             
     def obtener_fundacion_por_usuario(self, usuario_id):
         from database.db import get_connection
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # CORRECCIÓN: Usamos alias claros para que no se pisen los campos 'nombre'
+            # CORRECCIÓN: Quitamos f.foto_perfil que no existe en la tabla fundaciones
             query = """
-                SELECT f.id, f.usuario_id, f.nit, f.telefono, f.foto_perfil, f.descripcion,
+                SELECT f.id, f.usuario_id, f.nit, f.telefono, f.descripcion,
                     f.nombre AS nombre_fundacion, 
                     u.nombre AS nombre_encargado, 
                     u.correo, u.estado AS estado_usuario, f.estado_validacion
@@ -52,7 +75,7 @@ class DonacionModel:
         finally:
             if conn:
                 conn.close()
-
+                
     def buscar_reporte_admin(self, filtros):
         """Método para el panel de administración que resuelve el error 1054"""
         conn = get_connection()
@@ -150,7 +173,7 @@ class DonacionModel:
                 SELECT n.*, c.nombre AS nombre_categoria
                 FROM necesidades n
                 LEFT JOIN categorias c ON n.categoria_id = c.id
-                WHERE n.fundacion_id = %s
+                WHERE n.fundacion_id = %s AND n.estado != 'eliminado'
                 ORDER BY n.id DESC
             """
             cursor.execute(query, (int(fundacion_id),))
@@ -220,22 +243,28 @@ class DonacionModel:
         finally:
             if conn: 
                 conn.close()
+
     # =========================================================================
     # MÉTODOS DE NECESIDADES
     # =========================================================================
 
-    def crear_necesidad(self, fundacion_id, categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento=None):
+    def crear_necesidad(self, fundacion_id, categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento=None, tipo_recurso_especial=None, punto_entrega=None):
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            # Forzamos 'pendiente' directamente en el SQL para evitar que quede en blanco
+            # Añadimos los nuevos campos al INSERT de SQL
             query = """
                 INSERT INTO necesidades
-                    (fundacion_id, categoria_id, cantidad, tipo_urgencia,
-                     fecha_limite, ubicacion, telefono, descripcion, estado, fecha_vencimiento)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s)
+                (fundacion_id, categoria_id, cantidad, tipo_urgencia,
+                 fecha_limite, ubicacion, telefono, descripcion, estado, 
+                 fecha_vencimiento, tipo_recurso_especial, punto_entrega)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s, %s, %s)
             """
-            cursor.execute(query, (int(fundacion_id), categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento))
+            cursor.execute(query, (
+                int(fundacion_id), categoria_id, cantidad, urgencia, 
+                fecha_limite, ubicacion, telefono, descripcion, 
+                fecha_vencimiento, tipo_recurso_especial, punto_entrega
+            ))
             conn.commit()
             return True
         except Exception as e:
@@ -244,19 +273,28 @@ class DonacionModel:
         finally:
             conn.close()
             
-    def obtener_necesidades_activas(self, q=None, cat=None):
+    def obtener_necesidades_activas(self, q=None, cat=None, usuario_id=None):
+        """Obtiene necesidades activas uniendo usuarios para extraer el correo real de la fundación."""
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # Agregamos el JOIN con la tabla categorias y seleccionamos c.nombre
+            
+            # CONSULTA BLINDADA: Unimos con la tabla usuarios 'u' para traer el correo real
             query = """
-                SELECT n.*, f.nombre AS nombre_fundacion, c.nombre AS nombre_categoria
+                SELECT n.*, 
+                       n.fecha AS fecha_creacion,         -- Mapeamos 'fecha' como 'fecha_creacion' para el HTML
+                       f.nombre AS nombre_fundacion, 
+                       u.correo AS fundacion_correo,      -- Extraemos el correo desde la tabla usuarios
+                       f.telefono AS fundacion_telefono,  -- Extraemos el teléfono de fundaciones
+                       c.nombre AS nombre_categoria
                 FROM necesidades n
                 JOIN fundaciones f ON n.fundacion_id = f.id
+                JOIN usuarios u ON f.usuario_id = u.id     -- Conexión clave para obtener el correo
                 JOIN categorias c ON n.categoria_id = c.id
-                WHERE n.estado IN ('pendiente', 'aprobado')
+                WHERE n.estado IN ('pendiente', 'asignada') -- Estados reales según tu ENUM de la BD
             """
             params = []
+            
             if q:
                 query += " AND n.descripcion LIKE %s"
                 params.append(f"%{q}%")
@@ -268,7 +306,7 @@ class DonacionModel:
             cursor.execute(query, tuple(params))
             return cursor.fetchall()
         except Exception as e:
-            print(f"Error en obtener_necesidades_activas: {e}")
+            print(f"❌ Error real en obtener_necesidades_activas: {e}")
             return []
         finally:
             conn.close()
@@ -277,7 +315,6 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # CORREGIDO: Cambiado 'usuarios u' por 'fundaciones f' para mantener la coherencia
             query = """
                 SELECT n.*, f.nombre AS nombre_fundacion, f.id AS fundacion_id
                 FROM necesidades n
@@ -291,6 +328,65 @@ class DonacionModel:
             return None
         finally:
             conn.close()
+
+    def actualizar_necesidad(self, necesidad_id, categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento=None, tipo_recurso_especial=None, punto_entrega=None):
+        """Actualiza todos los campos de una necesidad específica, incluyendo las nuevas columnas de la interfaz."""
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            query = """
+                UPDATE necesidades 
+                SET categoria_id = %s, cantidad = %s, tipo_urgencia = %s, 
+                    fecha_limite = %s, ubicacion = %s, telefono = %s, 
+                    descripcion = %s, fecha_vencimiento = %s,
+                    tipo_recurso_especial = %s, punto_entrega = %s
+                WHERE id = %s
+            """
+            cursor.execute(query, (categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento, tipo_recurso_especial, punto_entrega, necesidad_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            print(f"❌ Error al actualizar necesidad {necesidad_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def cambiar_estado_necesidad(self, necesidad_id, nuevo_estado):
+        """Permite cambiar el estado de una necesidad (ej. 'eliminado' para borrado lógico)."""
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            query = "UPDATE necesidades SET estado = %s WHERE id = %s"
+            cursor.execute(query, (nuevo_estado, necesidad_id))
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            print(f"❌ Error al cambiar estado de la necesidad {necesidad_id}: {e}")
+            return False
+        finally:
+            conn.close()
+
+    # =========================================================================
+    # NUEVO: REGISTRO DE RECHAZO DE NECESIDADES
+    # =========================================================================
+    def guardar_rechazo_necesidad(self, usuario_id, necesidad_id):
+        """Inserta el registro de exclusión para que el donante no vuelva a ver la solicitud."""
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            query = """
+                INSERT IGNORE INTO necesidades_rechazadas (usuario_id, necesidad_id, fecha_rechazo)
+                VALUES (%s, %s, NOW())
+            """
+            cursor.execute(query, (usuario_id, necesidad_id))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"❌ Error al guardar rechazo de necesidad en DB: {e}")
+            return False
+        finally:
+            conn.close()
+
     # =========================================================================
     # MÉTODOS AUXILIARES
     # =========================================================================
@@ -312,7 +408,6 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            # Si pasamos fundacion_id, aseguramos que una fundación no edite donaciones de otra
             if fundacion_id:
                 query = "UPDATE donaciones SET estado_donante = %s WHERE id = %s AND fundacion_id = %s"
                 cursor.execute(query, (nuevo_estado, donacion_id, fundacion_id))
@@ -332,7 +427,6 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # Ajustamos los nombres de columnas según tu captura de phpMyAdmin
             query = """
                 SELECT 
                     COUNT(*) as total,
@@ -348,14 +442,12 @@ class DonacionModel:
             cursor.execute(query, (fundacion_id,))
             resultado = cursor.fetchone()
 
-            # Si no hay registros o el resultado es nulo, devolvemos todo en cero
             if not resultado or resultado['total'] is None:
                 return {
                     'pendientes': 0, 'recibidas': 0, 'rechazadas': 0,
                     'alimentos': 0, 'ropa': 0, 'otros': 0, 'total': 0
                 }
             
-            # Convertimos los posibles None de SUM a 0 para que Flask no tenga problemas
             return {k: (v if v is not None else 0) for k, v in resultado.items()}
 
         except Exception as e:
@@ -374,7 +466,6 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            # Cambio clave: UPDATE en lugar de DELETE
             query = "UPDATE donaciones SET estado_donante = 'eliminado' WHERE id = %s"
             cursor.execute(query, (donacion_id,))
             conn.commit()
@@ -384,4 +475,3 @@ class DonacionModel:
             return False
         finally:
             conn.close()
-# Fin del archivo DonacionModel - Red Solidaria

@@ -36,8 +36,10 @@ class DonacionController:
         return redirect(url_for("home_fundacion"))
 
     
-    # --- MÉTODO PARA QUE LA FUNDACIÓN SOLICITE AYUDA (NECESIDADES) ---
-    # --- MÉTODO PARA QUE LA FUNDACIÓN SOLICITE AYUDA (NECESIDADES) ---
+    # =========================================================================
+    # GESTIÓN DE NECESIDADES (SOLICITUDES DE AYUDA)
+    # =========================================================================
+    
     def solicitar_ayuda_view(self, session):
         # Primero obtenemos el ID interno de la fundación desde la sesión
         from models.usuario_model import UsuarioModel
@@ -50,70 +52,137 @@ class DonacionController:
         fundacion_id = fundacion['id']
 
         if request.method == 'POST':
-            categoria_texto = request.form.get('categoria')
+            categoria_texto = request.form.get('categoria') # "Alimentos", "Ropa", etc.
             cantidad = request.form.get('cantidad')
             urgencia = request.form.get('urgencia')
-            fecha_limite = request.form.get('fecha_limite')
-            ubicacion = request.form.get('ubicacion')
             telefono = request.form.get('telefono')
             descripcion = request.form.get('descripcion')
             fecha_vencimiento = request.form.get('fecha_vencimiento')
+            tipo_recurso_especial = request.form.get('tipo_recurso_especial')
 
-            # Mapeo de Categorías
-            mapeo_categorias = {
-                "Alimentos": 1,
-                "Ropa": 2,
-                "Higiene": 3,
-                "Educación": 4,
-                "Mobiliario": 5,
-                "Otros": 6
-            }
-            categoria_id = mapeo_categorias.get(categoria_texto, 6)
+            # ── DETECTOR DINÁMICO DE CATEGORÍAS REALES ──
+            # Traemos las categorías que tienes registradas en tu DB
+            lista_categorias = self.modelo.obtener_categorias()
+            categoria_id = None
 
-            if not fecha_limite: fecha_limite = None
-            if not fecha_vencimiento: fecha_vencimiento = None
+            # Buscamos el ID cuyo nombre coincida con lo que viene del HTML
+            for cat in lista_categorias:
+                # Comparamos ignorando mayúsculas y espacios
+                if cat['nombre'].strip().lower() in categoria_texto.strip().lower() or categoria_texto.strip().lower() in cat['nombre'].strip().lower():
+                    categoria_id = cat['id']
+                    break
 
-            # Instancia e inserción limpia
-            from models.donacion_model import DonacionModel
-            modelo_donacion_local = DonacionModel()
+            # Si por alguna razón sigue sin encontrar coincidencia, agarramos el primer ID que exista en tu DB
+            if not categoria_id and lista_categorias:
+                categoria_id = lista_categorias[0]['id']
 
-            exito = modelo_donacion_local.crear_necesidad(
+            if not fecha_vencimiento: 
+                fecha_vencimiento = None
+
+            # Insertamos en la DB con el ID real verificado
+            exito = self.modelo.crear_necesidad(
                 fundacion_id=fundacion_id, 
                 categoria_id=categoria_id,
                 cantidad=cantidad,
                 urgencia=urgencia,
-                fecha_limite=fecha_limite,
-                ubicacion=ubicacion,
+                fecha_limite=None,
+                ubicacion=None,
                 telefono=telefono,
                 descripcion=descripcion,
-                fecha_vencimiento=fecha_vencimiento
+                fecha_vencimiento=fecha_vencimiento,
+                tipo_recurso_especial=tipo_recurso_especial,
+                punto_entrega=None
             )
 
             if exito:
+                flash("✨ Solicitud de ayuda creada con éxito.", "success")
                 return redirect(url_for('home_fundacion'))
             else:
-                return render_template('solicitar_ayuda.html', error="No se pudo registrar la solicitud")
+                categorias = self.modelo.obtener_categorias()
+                return render_template('solicitar_ayuda.html', error="No se pudo registrar la solicitud", categorias=categorias)
 
-        # Si es GET, renderiza la vista pasando las categorías si las necesitas
-        categorias = modelo_donacion_local.obtener_categorias() if 'modelo_donacion_local' in locals() else []
-        return render_template('solicitar_ayuda.html', categorias=categorias)
+        categorias = self.modelo.obtener_categorias()
+        return render_template('solicitar_ayuda.html', categories=categorias, fundacion=fundacion)
+    
+    def editar_necesidad_view(self, necesidad_id, session):
+        """Renderiza y procesa el formulario de edición de una necesidad"""
+        necesidad = self.modelo.obtener_necesidad_por_id(necesidad_id)
+        if not necesidad:
+            flash("❌ La solicitud de ayuda no existe.", "danger")
+            return redirect(url_for('home_fundacion'))
 
-    # --- MÉTODO PARA QUE EL DONADOR PUBLIQUE UNA DONACIÓN ---
+        # Mapeo de Categorías
+        mapeo_categories = {
+            "Alimentos": 1, "Ropa": 2, "Higiene": 3,
+            "Educación": 4, "Mobiliario": 5, "Otros": 6
+        }
+
+        if request.method == 'POST':
+            categoria_texto = request.form.get('categoria')
+            cantidad = request.form.get('cantidad')
+            urgencia = request.form.get('urgencia')
+            telefono = request.form.get('telefono')
+            descripcion = request.form.get('descripcion')
+            fecha_vencimiento = request.form.get('fecha_vencimiento')
+            
+            # NUEVOS CAMPOS CAPTURADOS DESDE TU FORMULARIO INTERFAZ
+            tipo_recurso_especial = request.form.get('tipo_recurso_especial')
+            punto_entrega = request.form.get('punto_entrega')
+
+            categoria_id = mapeo_categories.get(categoria_texto, 6)
+
+            if not fecha_vencimiento: fecha_vencimiento = None
+
+            # Actualización enviando los nuevos campos a la Base de Datos
+            exito = self.modelo.actualizar_necesidad(
+                necesidad_id=necesidad_id,
+                categoria_id=categoria_id,
+                cantidad=cantidad,
+                urgencia=urgencia,
+                fecha_limite=None,
+                ubicacion=None,
+                telefono=telefono,
+                descripcion=descripcion,
+                fecha_vencimiento=fecha_vencimiento,
+                tipo_recurso_especial=tipo_recurso_especial,
+                punto_entrega=punto_entrega
+            )
+
+            if exito:
+                flash("✅ Solicitud de ayuda actualizada correctamente.", "success")
+                return redirect(url_for('home_fundacion'))
+            else:
+                flash("❌ No se realizaron cambios o hubo un error al actualizar.", "warning")
+                return redirect(url_for('home_fundacion'))
+
+        categorias = self.modelo.obtener_categorias()
+        # Cambia 'editar_necesidad.html' por 'solicitar_ayuda.html'
+        return render_template('solicitar_ayuda.html', necesidad=necesidad, categories=categorias)
+
+    def eliminar_necesidad_accion(self, necesidad_id, session):
+        """Aplica el borrado lógico cambiándole el estado a 'eliminado'"""
+        exito = self.modelo.cambiar_estado_necesidad(necesidad_id, 'eliminado')
+        if exito:
+            flash("🗑️ Solicitud de ayuda eliminada del panel.", "info")
+        else:
+            flash("❌ No se pudo eliminar la solicitud de ayuda.", "danger")
+        return redirect(url_for('home_fundacion'))
+
+
+    # =========================================================================
+    # MÉTODOS DE DONACIONES PARA DONADORES
+    # =========================================================================
+
     def publicar_donacion_view(self, request, session, necesidad_id=None):
-        from models.donacion_model import DonacionModel
-        
-        # 1. Seguridad: El usuario debe estar logueado
         if "usuario_id" not in session:
             return redirect(url_for("login"))
             
-        modelo = DonacionModel()
         necesidad_prellenada = None
 
-        # 2. Si viene desde una necesidad específica en el muro, traemos los datos
         if necesidad_id:
-            necesidad_prellenada = modelo.obtener_necesidad_por_id(necesidad_id)
+            necesidad_prellenada = self.modelo.obtener_necesidad_por_id(necesidad_id)
 
-        # Obtener fundaciones activas (usuarios con estado aprobado y rol fundación)
+        # Obtener fundaciones activas
         from database.db import get_connection
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -133,24 +202,17 @@ class DonacionController:
             cantidad = request.form.get("cantidad")
             descripcion = request.form.get("descripcion")
 
-
             if necesidad_prellenada:
-                # Donación a una sola fundación (por necesidad)
                 fundacion_ids = [str(necesidad_prellenada["fundacion_id"])]
-
-
             else:
-                # Donación general: solo una fundación seleccionada
                 fundacion_id = request.form.get("fundacion_id")
-                print("DEBUG fundacion_id crudo:", fundacion_id, type(fundacion_id))
                 fundacion_ids = [fundacion_id] if fundacion_id else []
-                print("DEBUG fundacion_ids lista:", fundacion_ids)
                 if not fundacion_ids or not fundacion_ids[0]:
                     flash("Debes seleccionar una fundación destino.", "danger")
-                    categorias = modelo.obtener_categorias()
+                    categorias = self.modelo.obtener_categorias()
                     return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
 
-            exito = modelo.registrar_donacion(
+            exito = self.modelo.registrar_donacion(
                 donador_id,
                 fundacion_ids,
                 categoria_id,
@@ -162,34 +224,28 @@ class DonacionController:
                 flash("🎉 ¡Gracias! Tu donación ha sido registrada.", "success")
                 return redirect(url_for("home_donador"))
             else:
-                flash("❌ Hubo un problema al registrar tu donación.", "danger")
+                flash("❌ Hubo un problemar al registrar tu donación.", "danger")
 
-        categorias = modelo.obtener_categorias()
+        categorias = self.modelo.obtener_categorias()
         return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
 
-    # --- MÉTODO PARA CARGAR EL PANEL DEL DONADOR ---
+
     def home_donador_view(self, session, request):
-        from models.donacion_model import DonacionModel
-        
         if "usuario_id" not in session:
             return redirect(url_for("login"))
 
         usuario_id = session["usuario_id"]
-        modelo = DonacionModel()
 
-        # 1. Capturar filtros del buscador (si los hay)
         q = request.args.get('q')
         categoria = request.args.get('categoria')
         estado = request.args.get('estado')
         fundacion = request.args.get('fundacion')
 
-        # 2. Llamar al método corregido que trae fundacion_nombre y estado_donante
-        historial = modelo.obtener_donaciones_por_usuario_filtrado(
-            usuario_id, q=q, categoria=categoria, estado=estado, fundacion=fundacion
+        historial = self.modelo.obtener_donaciones_por_usuario_filtrado(
+            usuario_id, q=q, Lazy_loading=False, categoria=categoria, estado=estado, fundacion=fundacion
         )
 
-        # 3. Obtener categorías para el select del filtro
-        categorias = modelo.obtener_categorias()
+        categorias = self.modelo.obtener_categorias()
 
         return render_template("home_donador.html", 
                                historial=historial, 
@@ -202,10 +258,8 @@ class DonacionController:
 
         donacion_id = request.form.get('donacion_id')
         accion = request.form.get('accion')
-        # Obtenemos el ID de la fundación de la sesión
         fundacion_id = session.get('usuario_id') 
 
-        # Mapeo de acciones a estados de tu DB
         nuevo_estado = {
             'aceptar': 'recibido',
             'rechazar': 'rechazado',
@@ -216,11 +270,9 @@ class DonacionController:
             flash("❌ Acción no válida", "danger")
             return redirect(url_for('home_fundacion'))
 
-        # Llamada al modelo con el nuevo parámetro fundacion_id
         exito = self.modelo.actualizar_estado_donacion(donacion_id, nuevo_estado, fundacion_id)
 
         if exito:
-            # Notificación a Java solo si se acepta o rechaza
             if accion in ['aceptar', 'rechazar']:
                 try:
                     datos_correo = {
@@ -236,5 +288,21 @@ class DonacionController:
         else:
             flash("❌ No se pudo actualizar la donación", "danger")
 
-        return redirect(url_for('home_fundacion'))    
-# Fin del Controlador DonacionController
+        return redirect(url_for('home_fundacion'))
+
+    # =========================================================================
+    # NUEVO: ACCIÓN PARA RECHAZAR/OCULTAR UNA NECESIDAD DESDE EL DONANTE
+    # =========================================================================
+    def rechazar_necesidad_accion(self, necesidad_id, session):
+        """Registra que un donador específico ocultó una necesidad de su vista"""
+        usuario_id = session.get("usuario_id")
+        
+        # Llamamos al modelo para insertar en la tabla pivote de exclusión/rechazo
+        exito = self.modelo.guardar_rechazo_necesidad(usuario_id, necesidad_id)
+        
+        if exito:
+            flash("👁️ Solicitud ocultada. No volverá a aparecer en tu carrusel.", "info")
+        else:
+            flash("❌ No se pudo ocultar la solicitud.", "danger")
+            
+        return redirect(url_for("home_donador"))

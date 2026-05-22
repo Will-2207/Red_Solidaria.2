@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Panel de Donador{% endblock %}
@@ -30,8 +31,44 @@
         .card-necesidad {
             border-radius: 20px;
             transition: transform 0.3s ease;
+            min-width: 300px; /* Tamaño mínimo asegurado para el efecto deslizador */
         }
         .card-necesidad:hover { transform: translateY(-5px); }
+
+        /* ── EFECTO DESLIZADOR ESTILO NETFLIX ── */
+        .netflix-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            padding: 10px 5px;
+        }
+        .netflix-slider {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            gap: 1.5rem;
+            padding-bottom: 15px;
+        }
+        .netflix-slider::-webkit-scrollbar {
+            height: 8px;
+        }
+        .netflix-slider::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .netflix-slider::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .netflix-item {
+            flex: 0 0 auto;
+            width: 45%; /* Muestra aproximadamente 2 tarjetas y media en pantalla */
+        }
+        @media (max-width: 768px) {
+            .netflix-item {
+                width: 85%; /* En celulares se adapta para ver una tarjeta completa */
+            }
+        }
 
         /* ── Stats panel (igual que fundación) ── */
         .stats-lateral {
@@ -97,6 +134,26 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             margin: 0 auto;
         }
+
+                /* ── FUERZA BRUTA PARA DESAPARECER LA ALERTA ── */
+        .alerta-notif {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block !important;
+            transition: all 0.6s ease-in-out !important;
+        }
+
+        .alerta-ocultar {
+            opacity: 0 !important;
+            transform: translateY(-20px) scale(0.5) !important;
+            max-width: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            border: none !important;
+        }
+
     </style>
 {% endblock %}
 
@@ -138,11 +195,8 @@
                     {% elif donador.estado == 'rechazado' %}
                         <span class="badge bg-danger d-block text-center mb-3">❌ Donante Rechazado</span>
                     {% else %}
-                        {# Este es el que evita que diga 'None' y pone 'Activo' con color verde #}
                         <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
                     {% endif %}
-
-                    
                 </div>
 
                 {# ══ STATS DE DONACIONES ══ #}
@@ -217,104 +271,97 @@
                         <span class="stats-num num-total">{{ donaciones|length if donaciones else 0 }}</span>
                     </div>
                 </div>
-
             </div>
 
-            {# ══ CONTENIDO PRINCIPAL ══ #}
-            <div class="col-lg-9">
+           {# ── CONTENIDO PRINCIPAL DERECHO ── #}
+        <div class="col-lg-9">
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="panel-title m-0">
-                        <i class="fas fa-hand-holding-heart text-warning me-2"></i> Solicitudes de Ayuda
-                    </h3>
-                    <span class="badge bg-warning text-dark">Peticiones actuales</span>
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" style="position: relative;">
+                <h3 class="panel-title m-0 d-flex align-items-center flex-wrap gap-2">
+                    <i class="fas fa-hands-helping text-info fa-2x me-2"></i> 
+                    Solicitudes de Ayuda
+                    <span id="alerta-nueva-solicitud" class="badge bg-primary ms-2 alerta-notif">
+                        🔔 ¡Tienes una nueva solicitud de ayuda!
+                    </span>
+                </h3>
+                <span class="badge bg-warning text-dark">Peticiones actuales</span>
+            </div>
 
-                    <div class="row g-4">
-                        {% for n in necesidades %}
-                        <div class="col-md-6" id="tarjeta-necesidad-{{ n.id }}">
-                            <div class="card card-necesidad h-100 border-0 shadow-sm">
-                                <div class="card-body p-4">
-                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <small class="text-muted">
-                                            <i class="far fa-calendar-alt"></i> Hasta: {{ n.fecha_limite }}
-                                        </small>
+            {# ── CARRUSEL DESLIZABLE ESTILO NETFLIX ── #}
+            <div class="netflix-container mb-5">
+                <div class="netflix-slider">
+                    {% for n in necesidades %}
+                    <div class="netflix-item" id="tarjeta-necesidad-{{ n.id }}">
+                        <div class="card card-necesidad h-100 border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <small class="text-muted">
+                                        <i class="far fa-calendar-alt"></i> Publicado: {{ n.fecha_creacion }}
+                                    </small>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-1">🏢 {{ n.nombre_fundacion }}</h5>
+                                
+                                {# DATOS DE CONTACTO CORREGIDOS CON LOS ALIAS EXACTOS DE TU PYTHON #}
+                                <div class="contacto-fundacion-tarjeta mb-2" style="font-size: 0.80rem; line-height: 1.3;">
+                                    <div class="text-muted text-truncate" title="{{ n.fundacion_correo }}">
+                                        <i class="fas fa-envelope text-secondary me-1" style="width: 14px;"></i> {{ n.fundacion_correo if n.fundacion_correo else 'Sin correo' }}
                                     </div>
-                                    <h5 class="fw-bold text-dark mb-1">🏢 {{ n.nombre_fundacion }}</h5>
-                                    
-                                    <div class="mb-3">
-                                        <p class="text-primary small fw-bold mb-1">📦 Cantidad solicitada: {{ n.cantidad }}</p>
-                                        <span class="badge bg-info text-dark" style="font-size: 0.85em;">🏷️ Categoría: {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+                                    <div class="text-muted text-truncate">
+                                        <i class="fas fa-phone text-secondary me-1" style="width: 14px;"></i> {{ n.fundacion_telefono if n.fundacion_telefono else 'Sin teléfono' }}
                                     </div>
-
-                                    <p class="card-text text-muted small" style="line-height:1.5;">
-                                        {{ n.descripcion[:150] }}...
-                                    </p>
                                 </div>
                                 
-                                <div class="card-footer bg-transparent border-0 p-4 pt-0">
-                                    <div class="row g-2">
-                                        <div class="col-6">
-                                            <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm visual-btn"
-                                                    style="border-radius:12px; font-size: 0.85rem;"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalDetalleAyuda"
-                                                    data-url="{{ url_for('donar', necesidad_id=n.id) }}"
-                                                    onclick="mostrarDetalleAyuda(
-                                                        '{{ n.nombre_fundacion|e }}',
-                                                        '{{ n.descripcion|e }}',
-                                                        '',
-                                                        '{{ n.fecha_limite|e }}',
-                                                        'Fundación Verificada',
-                                                        this.getAttribute('data-url')
-                                                    )">
-                                                🤝 AYUDAR
-                                            </button>
-                                        </div>
-                                        <div class="col-6">
-                                            <button class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
-                                                    style="border-radius:12px; font-size: 0.85rem;"
-                                                    onclick="if(confirm('¿Deseas ocultar esta solicitud?')) { document.getElementById('tarjeta-necesidad-{{ n.id }}').style.display='none'; }">
+                                <div class="mb-3">
+                                    <p class="text-primary small fw-bold mb-1">📦 Cantidad solicitada: {{ n.cantidad }}</p>
+                                    <span class="badge bg-info text-dark" style="font-size: 0.85em;">🏷️ Categoría: {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+                                </div>
+
+                                <p class="card-text text-muted small" style="line-height:1.5;">
+                                    {{ n.descripcion[:150] }}...
+                                </p>
+                            </div>
+                            
+                            <div class="card-footer bg-transparent border-0 p-4 pt-0">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm visual-btn"
+                                                style="border-radius:12px; font-size: 0.85rem;"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalDetalleAyuda"
+                                                data-url="{{ url_for('donar', necesidad_id=n.id) }}"
+                                                onclick="mostrarDetalleAyuda(
+                                                    '{{ n.nombre_fundacion|e }}',
+                                                    '{{ n.descripcion|e }}',
+                                                    '',
+                                                    '{{ n.fecha_creacion|e }}',
+                                                    'Fundación Verificada',
+                                                    this.getAttribute('data-url')
+                                                )">
+                                            🤝 AYUDAR
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <form action="{{ url_for('rechazar_necesidad', necesidad_id=n.id) }}" method="POST" onsubmit="return confirm('¿Deseas ocultar y rechazar esta solicitud definitivamente?');">
+                                            <button type="submit" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
+                                                    style="border-radius:12px; font-size: 0.85rem;">
                                                 ❌ RECHAZAR
                                             </button>
-                                        </div>
+                                        </form>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {% else %}
-                        <div class="col-12 text-center py-4">
-                            <p class="text-muted italic">No hay solicitudes de ayuda publicadas hoy.</p>
-                        </div>
-                        {% endfor %}
                     </div>
-
-                    {# Modal detalle ayuda #}
-                    <div class="modal fade" id="modalDetalleAyuda" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Detalle de la Solicitud</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <h5 id="modalFundacion"></h5>
-                                    <p id="modalDescripcion"></p>
-                                    <p><strong>Fecha:</strong> <span id="modalFecha"></span></p>
-                                    <p><strong>Solicitante:</strong> <span id="modalSolicitante"></span></p>
-                                </div>
-                                <div class="modal-footer">
-                                    <a id="modalDonarBtn" href="#"
-                                       class="btn btn-warning w-100 fw-bold py-2 shadow-sm">
-                                        🤝 Donar a esta Fundación
-                                    </a>
-                                </div>
-                            </div>
+                    {% else %}
+                        <div class="w-100 text-center py-4">
+                            <p class="text-muted">No hay solicitudes de ayuda publicadas hoy.</p>
                         </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
+
+                {# ── RASTREAR Y REPORTAR DONACIONES ── #}
                 <div class="panel-section mb-4">
                     <h3 class="panel-title mb-3">🔍 Rastrear y Reportar Donaciones</h3>
                     <div class="filtro-container">
@@ -328,7 +375,7 @@
                             </div>
                             <div class="col-md-2 d-flex align-items-end mb-2">
                                 <button type="submit" name="accion" value="reporte"
-                                        class="btn btn-danger btn-sm w-100 fw-bold">
+                                         class="btn btn-danger btn-sm w-100 fw-bold">
                                     📧 Enviar Reporte al Correo
                                 </button>
                             </div>
@@ -369,6 +416,7 @@
                     </div>
                 </div>
 
+                {# ── TABLA DE HISTORIAL DE DONACIONES ── #}
                 <div id="mis-donaciones-realizadas" class="panel-section shadow-sm">
                     <div class="table-container mt-3">
                         <table class="table-donaciones table w-100">
@@ -410,23 +458,50 @@
                         </table>
                     </div>
                 </div>
+
+            </div> {# Fin col-lg-9 #}
+        </div> {# Fin Row #}
+    </div> {# Fin Admin Container #}
+
+    {# ══ MODAL DETALLE FLOTANTE CON FORMULARIO DE ACCIÓN REAL ══ #}
+    <div class="modal fade" id="modalDetalleAyuda" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px;">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Detalle de la Solicitud</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h5 id="modalFundacion" class="fw-bold text-primary"></h5>
+                    <p id="modalDescripcion" class="text-muted" style="line-height: 1.5;"></p>
+                    <hr class="text-muted opacity-25">
+                    <p class="mb-2"><strong>📅 Fecha Publicación:</strong> <span id="modalFecha"></span></p>
+                    <p class="mb-0"><strong>🛡️ Solicitante:</strong> <span id="modalSolicitante"></span></p>
+                </div>
+                
+                <form id="modalDonarForm" method="POST">
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm" style="border-radius: 12px;">
+                            🤝 Confirmar y Registrar Donación
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
+    {# ══ BARRA INFERIOR DE ACCIÓN ══ #}
     <div class="barra-inferior p-5 bg-primary text-white mt-5">
         <div class="container text-center">
             <h2 class="fw-bold">¿Tienes algo que compartir hoy?</h2>
             <p class="lead">Tu pequeña acción genera un gran cambio.</p>
-            <a href="{{ url_for('donar') }}"
-               class="btn btn-light btn-lg mt-3 fw-bold px-5">🚀 REALIZAR NUEVA DONACIÓN</a>
+            <a href="{{ url_for('donar') }}" class="btn btn-light btn-lg mt-3 fw-bold px-5">🚀 REALIZAR NUEVA DONACIÓN</a>
         </div>
     </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
+    {# ══ CONTROLADORES JAVASCRIPT DIRECTOS ══ #}
+    <script>
+        // 1. Manejador del Scroll Suave
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -434,28 +509,47 @@
                 if (target) target.scrollIntoView({ behavior: 'smooth' });
             });
         });
-    });
 
-    window.mostrarDetalleAyuda = function(nombre, descripcion, urgencia, fecha, solicitante, urlDonar) {
-        // Aseguramos que busque los elementos correctos en tu modal flotante
-        if (document.getElementById('modalFundacion')) {
-            document.getElementById('modalFundacion').textContent = nombre;
+        // 2. Desvanecer y eliminar la alerta azul automáticamente
+        document.addEventListener("DOMContentLoaded", function() {
+            const alertaAzul = document.getElementById("alerta-nueva-solicitud");
+            if (alertaAzul) {
+                setTimeout(function() {
+                    alertaAzul.style.transition = "opacity 0.5s ease";
+                    alertaAzul.style.opacity = "0";
+                    setTimeout(function() {
+                        alertaAzul.remove();
+                    }, 500);
+                }, 3000);
+            }
+        });
+
+        // 3. Función corregida para el modal (Soporta enlaces y formularios POST)
+        window.mostrarDetalleAyuda = function(nombre, descripcion, urgencia, fecha, solicitante, urlDonar) {
+            if (document.getElementById('modalFundacion')) {
+                document.getElementById('modalFundacion').textContent = nombre;
+            }
+            if (document.getElementById('modalDescripcion')) {
+                document.getElementById('modalDescripcion').textContent = descripcion;
+            }
+            if (document.getElementById('modalFecha')) {
+                document.getElementById('modalFecha').textContent = fecha;
+            }
+            if (document.getElementById('modalSolicitante')) {
+                document.getElementById('modalSolicitante').textContent = solicitante;
+            }
+            
+            // Si el botón de confirmación es un enlace (<a>)
+            let btnDonar = document.getElementById('modalDonarBtn');
+            if (btnDonar) {
+                btnDonar.setAttribute('href', urlDonar);
+            }
+
+            // Si el botón de confirmación está dentro de un formulario (<form id="modalDonarForm">)
+            let formDonar = document.getElementById('modalDonarForm');
+            if (formDonar) {
+                formDonar.setAttribute('action', urlDonar);
+            }
         }
-        if (document.getElementById('modalDescripcion')) {
-            document.getElementById('modalDescripcion').textContent = descripcion;
-        }
-        if (document.getElementById('modalFecha')) {
-            document.getElementById('modalFecha').textContent = fecha;
-        }
-        if (document.getElementById('modalSolicitante')) {
-            document.getElementById('modalSolicitante').textContent = solicitante;
-        }
-        
-        // Configura el enlace final para el botón "Donar" dentro del modal
-        let btnDonar = document.getElementById('modalDonarBtn');
-        if (btnDonar) {
-            btnDonar.setAttribute('href', urlDonar);
-        }
-    }
-</script>
+    </script>
 {% endblock %}

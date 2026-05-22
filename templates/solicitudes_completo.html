@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('home_fundacion') }}" class="text-warning">Panel Fundación</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Historial</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold m-0">🏛️ Historial Completo de Solicitudes</h2>
+            <p class="text-muted m-0">Gestiona y haz seguimiento a todas las peticiones que has publicado.</p>
+        </div>
+        <a href="{{ url_for('home_fundacion') }}" class="btn btn-outline-dark fw-bold">
+            <i class="fas fa-arrow-left me-2"></i> Volver al Panel
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 15px; overflow: hidden;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle m-0">
+                    <thead class="table-dark" style="background-color: #212529;">
+                        <tr>
+                            <th scope="col" class="ps-4">Fecha de Solicitud</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col">Cantidad</th>
+                            <th scope="col">Categoría</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col" class="text-center pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    {% for n in solicitudes_ayuda %}
+        <tr>
+            <td class="ps-4 text-nowrap">
+                <i class="far fa-calendar-alt text-muted me-2"></i>
+                {{ n.fecha_creacion if n.fecha_creacion else 'Reciente' }}
+            </td>
+            <td>
+                <div class="text-truncate-custom" style="max-width: 400px; font-size: 0.9rem;">
+                    {{ n.descripcion }}
+                </div>
+            </td>
+            <td>
+                <span class="badge bg-light text-dark border fw-bold">{{ n.cantidad }}</span>
+            </td>
+            <td>
+                <span class="badge bg-info text-dark border-0">{{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+            </td>
+            <td>
+                {% if n.estado == 'pendiente' %}
+                    <span class="badge bg-warning text-dark">Pendiente</span>
+                {% elif n.estado == 'asignada' or n.estado == 'aprobado' %}
+                    <span class="badge bg-primary">Asignada</span>
+                {% else %}
+                    <span class="badge bg-success">Completada</span>
+                {% endif %}
+            </td>
+            <td class="text-center pe-4">
+                <button type="button" class="btn btn-sm btn-outline-dark" style="border-radius: 20px;" 
+                        data-bs-toggle="modal" data-bs-target="#modalDetalle{{ n.id }}">
+                    👁️ Ver Detalle
+                </button>
+            </td>
+
+            <div class="modal fade" id="modalDetalle{{ n.id }}" tabindex="-1" aria-labelledby="modalLabel{{ n.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content text-dark" style="border-radius: 15px;">
+                        <div class="modal-header border-0 bg-light" style="border-radius: 15px 15px 0 0;">
+                            <h5 class="modal-title fw-bold" id="modalLabel{{ n.id }}">
+                                <i class="fas fa-info-circle text-primary me-2"></i>Detalle de Solicitud
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-shadow="none" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4 text-start">
+                            <p><strong>📅 Fecha de Solicitud:</strong> {{ n.fecha_creacion if n.fecha_creacion else 'Reciente' }}</p>
+                            <p><strong>📦 Categoría:</strong> {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</p>
+                            <p><strong>🔢 Cantidad Solicitada:</strong> <span class="badge bg-light text-dark border fw-bold">{{ n.cantidad }}</span></p>
+                            <p><strong>🟢 Estado:</strong> 
+                                {% if n.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif n.estado == 'asignada' or n.estado == 'aprobado' %}
+                                    <span class="badge bg-primary">Asignada</span>
+                                {% else %}
+                                    <span class="badge bg-success">Completada</span>
+                                {% endif %}
+                            </p>
+                            <hr>
+                            <p class="fw-bold mb-1">📝 Descripción Completa:</p>
+                            <div class="p-3 bg-light rounded" style="font-size: 0.95rem; white-space: pre-wrap; color: #212529;">
+                                {{ n.descripcion }}
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" style="border-radius: 20px;">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-3x mb-3 d-block text-secondary"></i>
+                No se encontraron solicitudes registradas.
+            </td>
+        </tr>
+    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.text-truncate-custom {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+{% endblock %}

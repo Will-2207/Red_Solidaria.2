@@ -72,7 +72,6 @@ class UsuarioController:
 
             modelo = UsuarioModel()
             
-            # Llamamos al método pasándole todos los parámetros ordenados
             exito = modelo.actualizar_perfil_fundacion(
                 usuario_id=usuario_id,
                 nombre_fundacion=nombre_formulario, 
@@ -83,13 +82,12 @@ class UsuarioController:
             )
             
             if exito:
-                # ── ASIGNACIÓN CORRECTA DE SESIONES SEGÚN EL ROL ──
                 if rol == 3:
                     session["usuario_encargado"] = usuario_encargado
-                    session["nombre"] = usuario_encargado  # El nombre del encargado va para el saludo general
-                    session["fundacion_nombre"] = nombre_formulario # Guardamos el nombre de la institución de forma explícita
+                    session["nombre"] = usuario_encargado  
+                    session["fundacion_nombre"] = nombre_formulario 
                 else:
-                    session["nombre"] = nombre_formulario  # Donador o admin guardan su nombre normal
+                    session["nombre"] = nombre_formulario  
                 
                 session["telefono"] = telefono
                 if nombre_archivo:
@@ -106,7 +104,6 @@ class UsuarioController:
             else:
                 return redirect(url_for("home_donador"))
 
-        # ── LÓGICA GET ──
         usuario_datos = {
             "nombre":      session.get("nombre"),
             "telefono":    session.get("telefono"),
@@ -132,7 +129,6 @@ class UsuarioController:
             conn   = mysql.connector.connect(**config)
             cursor = conn.cursor()
 
-            # Verificar correo duplicado
             cursor.execute("SELECT id FROM usuarios WHERE correo = %s", (correo,))
             if cursor.fetchone():
                 print(f"ERROR: El correo {correo} ya está registrado")
@@ -218,22 +214,43 @@ class UsuarioController:
 
         modelo               = DonacionModel()
         necesidad_prellenada = None
-        todas_las_categorias = modelo.obtener_categorias()
+        todas_las_categories = modelo.obtener_categorias()
 
         if necesidad_id:
             necesidad_prellenada = modelo.obtener_necesidad_por_id(necesidad_id)
 
-        # ── Fundaciones activas CON descripción ──
         fundaciones_activas = self.modelo.obtener_fundaciones_activas_con_descripcion()
 
         if request.method == "POST":
             donador_id   = session["usuario_id"]
+            
+            # ══ NUEVO: FLUJO AUTOMÁTICO DESDE EL MODAL DEL CARRUSEL ══
+            if necesidad_id and necesidad_prellenada:
+                # Extraemos los datos directamente de la necesidad de la BD para clonarlos en la donación
+                fundacion_id = necesidad_prellenada['fundacion_id']
+                categoria_id = necesidad_prellenada['categoria_id']
+                cantidad     = necesidad_prellenada['cantidad']
+                descripcion  = necesidad_prellenada['descripcion']
+                fotos_str    = None  # No hay carga de archivos físicos desde el modal rápido
+                
+                exito = modelo.registrar_donacion_con_necesidad(
+                    donador_id, fundacion_id, categoria_id,
+                    cantidad, descripcion, necesidad_id, fotos_str
+                )
+                
+                if exito:
+                    flash("🎉 ¡Gracias! Tu ayuda ha sido registrada. La fundación la revisará en su historial.", "success")
+                    return redirect(url_for("home_donador"))
+                else:
+                    flash("❌ Hubo un problema al procesar la donación automática.", "danger")
+                    return redirect(url_for("home_donador"))
+
+            # ══ FLUJO TRADICIONAL DESDE EL FORMULARIO MANUAL ══
             fundacion_id = request.form.get("fundacion_id")
             categoria_id = request.form.get("categoria_id")
             cantidad     = request.form.get("cantidad")
             descripcion  = request.form.get("descripcion")
 
-            # ── Procesar fotos (máx. 3) ──
             fotos_guardadas = []
             archivos_fotos  = request.files.getlist("fotos_donacion")
             carpeta_fotos   = os.path.join('static', 'img', 'donaciones')
@@ -263,7 +280,7 @@ class UsuarioController:
         return render_template(
             "donar.html",
             necesidad=necesidad_prellenada,
-            categorias=todas_las_categorias,
+            categorias=todas_las_categories,
             fundaciones_activas=fundaciones_activas
         )
 
@@ -274,41 +291,35 @@ class UsuarioController:
         import json
         from app import serializar_datos
 
-        # 1. Verificación de Seguridad
         if "rol" not in session:
             return redirect(url_for("login"))
         if int(session["rol"]) != 3:
             return "Acceso no autorizado"
 
-        # 2. Obtener datos de la fundación y SINCRONIZAR SESIÓN
         usuario_id = session["usuario_id"]
         fundacion = self.modelo.obtener_fundacion_por_usuario(usuario_id)
         
         if not fundacion:
             return "Error: No se encontraron datos de la fundación."
 
-        # CORREGIDO: Usamos los nuevos alias del modelo para que no se pisen en el Popup
         if fundacion:
             session['fundacion_nombre'] = fundacion.get('nombre_fundacion')
-            session['usuario_encargado'] = fundacion.get('nombre_encargado') # <-- AQUÍ CAPTURA TU NOMBRE REAL
+            session['usuario_encargado'] = fundacion.get('nombre_encargado') 
             if fundacion.get('foto_perfil'):
                 session['foto_perfil'] = fundacion['foto_perfil']
 
-        # 3. Captura de filtros desde la URL y NORMALIZACIÓN DE ESTADO Y CATEGORÍA
         fundacion_id = fundacion["id"]
         query = request.args.get('q', '')
         donante = request.args.get('donante', '')
         accion = request.args.get('accion')
         correo_reporte = request.args.get('correo_reporte')
         
-        # --- NORMALIZACIÓN DE CATEGORÍA (Evita fallos por mayúsculas/minúsculas) ---
         categoria_raw = request.args.get('categoria', '')
         if categoria_raw and categoria_raw.lower() != 'todas':
             categoria_filtro = categoria_raw.lower().strip()
         else:
-            categoria_filtro = categoria_raw  # Mantiene 'Todas' o vacío
+            categoria_filtro = categoria_raw  
 
-        # --- Lógica de normalización para que el filtro funcione (rechazada -> rechazado) ---
         estado_raw = request.args.get('est', '').lower()
         if estado_raw in ['rechazada', 'rechazado', 'rechazados']:
             estado_filtro = 'rechazado'
@@ -317,17 +328,15 @@ class UsuarioController:
         else:
             estado_filtro = estado_raw
 
-        # 4. Obtener donaciones filtradas usando el estado y categoría normalizados
         donacion_model = DonacionModel()
         mis_donaciones = donacion_model.obtener_donaciones_por_fundacion(
             fundacion_id, 
             q=query, 
             donante=donante, 
-            categoria=categoria_filtro, # <-- Enviado normalizado
+            categoria=categoria_filtro, 
             estado=estado_filtro
         )
         
-        # --- ESTADÍSTICAS (Contadores laterales) ---
         stats_db = donacion_model.obtener_estadisticas_fundacion(fundacion_id)
         stats = {
             'pendientes': stats_db.get('pendientes', 0) if stats_db else 0,
@@ -339,13 +348,11 @@ class UsuarioController:
             'total': stats_db.get('total', 0) if stats_db else 0
         }
 
-        # 5. Lógica de Generación de Reportes (Integración con Java)
         if accion == 'reporte':
             if not correo_reporte:
                 flash("Por favor, ingresa un correo para el reporte", "warning")
             else:
                 try:
-                    # CORRECCIÓN DE ENDPOINT: Apuntamos al servicio exclusivo de fundaciones
                     url_java = f"http://localhost:8080/api/email/enviar-reporte-fundacion"
                     desglose_dict = {}
                     
@@ -392,11 +399,9 @@ class UsuarioController:
                     print(f"❌ Error de conexión con Java: {e}")
                     flash("No se pudo conectar con el servicio de correos", "danger")
                     
-        # 6. Preparar datos adicionales (CORREGIDO para filtrar por tu fundación)
         solicitudes_ayuda = donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
         motivos_eliminacion = self.modelo.obtener_motivos_eliminacion()
 
-        # 7. Retorno al Template
         return render_template(
             "home_fundacion.html",
             fundacion=fundacion,
@@ -417,17 +422,25 @@ class UsuarioController:
         if "usuario_id" not in session or int(session.get("rol")) != 3:
             return redirect(url_for("login"))
 
+        usuario_id = session.get("usuario_id")
+        modelo_donacion = DonacionModel()
+        
+        fundacion_datos = modelo_donacion.obtener_fundacion_por_usuario(usuario_id)
+        if fundacion_datos and 'nombre_fundacion' in fundacion_datos:
+            fundacion_datos['nombre'] = fundacion_datos['nombre_fundacion']
+
         if request.method == "POST":
-            fundacion_id = session["usuario_id"]
+            fundacion_id = fundacion_datos['id'] if fundacion_datos else usuario_id
             categoria    = request.form.get("categoria")
-            cantidad     = request.form.get("cantidad")
+            text_cantidad = request.form.get("cantidad")
+            # Convertir de forma segura para evitar fallos si el número viene vacío
+            cantidad     = int(text_cantidad) if text_cantidad and text_cantidad.isdigit() else 0
             urgencia     = request.form.get("urgencia")
             fecha_limite = request.form.get("fecha_limite")
             ubicacion    = request.form.get("ubicacion")
             telefono     = request.form.get("telefono")
             descripcion  = request.form.get("descripcion")
 
-            modelo_donacion = DonacionModel()
             exito = modelo_donacion.crear_necesidad(
                 fundacion_id, categoria, cantidad, urgencia,
                 fecha_limite, ubicacion, telefono, descripcion
@@ -438,9 +451,83 @@ class UsuarioController:
                 return redirect(url_for("home_fundacion"))
             else:
                 flash("❌ Hubo un error al publicar la solicitud.", "danger")
-                return render_template("solicitar_ayuda.html")
+                return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
 
-        return render_template("solicitar_ayuda.html")
+        return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
+
+    def editar_solicitud_view(self, id):
+        from flask import session, redirect, url_for, request, flash, render_template
+        from models.donacion_model import DonacionModel
+
+        if "usuario_id" not in session or int(session.get("rol")) != 3:
+            return redirect(url_for("login"))
+
+        usuario_id = session.get("usuario_id")
+        modelo_donacion = DonacionModel()
+
+        solicitud = modelo_donacion.obtener_necesidad_por_id(id)
+        
+        if not solicitud:
+            flash("❌ La solicitud no existe.", "danger")
+            return redirect(url_for("home_fundacion"))
+
+        if solicitud.get('estado') != 'pendiente':
+            flash("⚠️ No puedes editar esta solicitud porque ya ha sido vinculada o aceptada por un donante.", "warning")
+            return redirect(url_for("home_fundacion"))
+
+        fundacion_datos = modelo_donacion.obtener_fundacion_por_usuario(usuario_id)
+        if fundacion_datos and 'nombre_fundacion' in fundacion_datos:
+            fundacion_datos['nombre'] = fundacion_datos['nombre_fundacion']
+
+        if request.method == "POST":
+            categoria    = request.form.get("categoria")
+            text_cantidad = request.form.get("cantidad")
+            cantidad     = int(text_cantidad) if text_cantidad and text_cantidad.isdigit() else 0
+            urgencia     = request.form.get("urgencia")
+            fecha_limite = request.form.get("fecha_limite")
+            ubicacion    = request.form.get("ubicacion")
+            telefono     = request.form.get("telefono")
+            descripcion  = request.form.get("descripcion")
+
+            exito = modelo_donacion.actualizar_necesidad(
+                id, categoria, cantidad, urgencia,
+                fecha_limite, ubicacion, telefono, descripcion
+            )
+
+            if exito:
+                flash("💾 ¡Solicitud actualizada correctamente!", "success")
+                return redirect(url_for("home_fundacion"))
+            else:
+                flash("❌ Error al guardar los cambios de la solicitud.", "danger")
+
+        return render_template("solicitar_ayuda.html", solicitud=solicitud, fundacion=fundacion_datos)
+
+    def eliminar_solicitud_view(self, id):
+        from flask import session, redirect, url_for, flash
+        from models.donacion_model import DonacionModel
+
+        if "usuario_id" not in session or int(session.get("rol")) != 3:
+            return redirect(url_for("login"))
+
+        modelo_donacion = DonacionModel()
+        solicitud = modelo_donacion.obtener_necesidad_por_id(id)
+
+        if not solicitud:
+            flash("❌ La solicitud no existe.", "danger")
+            return redirect(url_for("home_fundacion"))
+
+        if solicitud.get('estado') != 'pendiente':
+            flash("⚠️ No puedes eliminar esta solicitud porque ya está asignada o completada.", "warning")
+            return redirect(url_for("home_fundacion"))
+
+        exito = modelo_donacion.cambiar_estado_necesidad(id, 'eliminada')
+
+        if exito:
+            flash("🗑️ La solicitud ha sido eliminada del panel con éxito (Guardada en historial).", "success")
+        else:
+            flash("❌ Hubo un error al intentar eliminar la solicitud.", "danger")
+
+        return redirect(url_for("home_fundacion"))
 
     def home_donador_view(self):
         from flask import session, redirect, url_for, render_template, request, flash
@@ -449,11 +536,9 @@ class UsuarioController:
         import json
         from app import serializar_datos
 
-        # 1. Verificación de seguridad
         if "usuario_id" not in session:
             return redirect(url_for("login"))
 
-        # 2. Preparar datos del perfil (MODIFICADO PARA EVITAR EL 'NONE')
         datos_donador = {
             "nombre":      session.get("nombre"),
             "foto_perfil": session.get("foto_perfil"),
@@ -461,7 +546,6 @@ class UsuarioController:
             "estado":      session.get("estado") if session.get("estado") else "Activo"
         }
 
-        # 3. Captura de filtros desde la URL
         modelo_donacion = DonacionModel()
         q              = request.args.get('q', '')
         cat            = request.args.get('cat', '')
@@ -470,8 +554,10 @@ class UsuarioController:
         accion         = request.args.get('accion')
         correo_reporte = request.args.get('correo_reporte')
 
-        # 4. Obtener datos para la vista (Necesidades y Donaciones propias)
-        necesidades = modelo_donacion.obtener_necesidades_activas(q, cat)
+        # CORRECCIÓN DEFINITIVA: Pasamos el usuario_id de la sesión para que MySQL pueda filtrar correctamente
+        necesidades = modelo_donacion.obtener_necesidades_activas(q=q, cat=cat, usuario_id=session["usuario_id"])
+        # ─── AGREGA ESTA LÍNEA DE DIAGNÓSTICO EN TU PYTHON ───
+        print(f"🔍 [DIAGNÓSTICO] Cantidad de necesidades recuperadas: {len(necesidades)} | Contenido: {necesidades}")
         
         mis_donaciones = modelo_donacion.obtener_donaciones_por_usuario_filtrado(
             session["usuario_id"], 
@@ -481,7 +567,6 @@ class UsuarioController:
             fundacion=fundacion_busq
         )
 
-        # 5. Lógica de Reportes para Donadores (Integración Java)
         if accion == 'reporte':
             if not correo_reporte:
                 flash("Por favor, ingresa un correo para el reporte", "warning")
@@ -515,11 +600,11 @@ class UsuarioController:
                     
                     payload = {
                         "destinatario":       correo_reporte,
-                        "nombreDonador":      datos_donador["nombre"],
+                        "nombreDonador":       datos_donador["nombre"],
                         "telefono":           datos_donador.get("telefono", "N/A"),
-                        "cantidadDonaciones": total_donaciones,
+                        "amountDonaciones":  total_donaciones,
                         "donaciones":         lista_desglosada,
-                        "categoriaFiltrada":  cat,
+                        "categoriaFiltrada":   cat,
                         "estadoFiltrado":     est
                     }
                     
@@ -534,7 +619,7 @@ class UsuarioController:
                     print(f"❌ Error de conexión con Java: {e}")
                     flash("No se pudo conectar con el servicio de correos (Java)", "danger")
 
-        # 6. Renderizar el template con los datos del donador
+        # Se renderiza pasando 'necesidades=necesidades' correctamente
         return render_template(
             "home_donador.html",
             donador=datos_donador,
@@ -592,3 +677,30 @@ class UsuarioController:
                 flash("❌ Hubo un error al actualizar los datos", "danger")
                 
         return redirect(url_for('home_fundacion'))
+    
+    def solicitudes_completo_view(self):
+        from flask import render_template, session, redirect, url_for, flash
+        from models.donacion_model import DonacionModel
+        
+        if 'usuario_id' not in session:
+            return redirect(url_for('login'))
+            
+        usuario_id = session.get('usuario_id')
+        modelo_donacion = DonacionModel()
+        
+        fundacion_datos = modelo_donacion.obtener_fundacion_por_usuario(usuario_id)
+        
+        if not fundacion_datos:
+            flash("❌ No se encontraron datos vinculados a esta fundación.", "danger")
+            return redirect(url_for('home_fundacion'))
+            
+        if 'nombre_fundacion' in fundacion_datos:
+            fundacion_datos['nombre'] = fundacion_datos['nombre_fundacion']
+            
+        fundacion_id = fundacion_datos['id'] 
+        
+        solicitudes = modelo_donacion.obtener_necesidades_por_fundacion(fundacion_id)
+        
+        return render_template('solicitudes_completo.html', 
+                            solicitudes_ayuda=solicitudes, 
+                            fundacion=fundacion_datos)

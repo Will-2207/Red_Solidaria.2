@@ -1,82 +1,128 @@
+
 {% extends "base.html" %}
 
-{% block title %}Solicitar Ayuda - Red Solidaria{% endblock %}
+{% block title %}{% if necesidad %}Editar Solicitud{% else %}Solicitar Ayuda{% endif %} - Red Solidaria{% endblock %}
 
 {% block content %}
 <div class="admin-container mt-4 mb-5 mx-auto" style="max-width: 800px;"> 
     
     <div class="dashboard-header mb-4">
         <div>
-            <h1>📤 Nueva Solicitud de Ayuda</h1>
+            <h1>{% if necesidad %}✏️ Editar Solicitud de Ayuda{% else %}📤 Nueva Solicitud de Ayuda{% endif %}</h1>
             <p>Completa todos los campos para que los donantes tengan la información clara.</p>
         </div>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-12">
-            <div class="panel-section shadow-sm p-4 border" style="border: 1px solid #dee2e6 !important; border-radius: 12px;">
-                <form action="{{ url_for('solicitar_ayuda') }}" method="POST" class="needs-validation">
+            <div class="panel-section shadow-sm p-4 border" style="border: 1px solid #dee2e6 !important; border-radius: 12px; background-color: #ffffff;">
+                
+                <form id="formSolicitudAyuda" action="{% if necesidad %}{{ url_for('editar_necesidad_ruta', id=necesidad.id) }}{% else %}#FormularioIncompleto{% endif %}" method="POST" class="needs-validation">
                     <div class="row g-4">
                         
+                        {# ── CATEGORÍA PRINCIPAL ── #}
                         <div class="col-md-6">
                             <label class="form-label fw-bold">📦 Categoría del Recurso</label>
                             <select id="selectCategoria" name="categoria" class="form-select form-control-lg" required>
-                                <option value="" selected disabled>Seleccione una categoría...</option>
-                                <option value="Alimentos">Alimentos No Perecederos</option>
-                                <option value="Ropa">Ropa y Calzado</option>
-                                <option value="Higiene">Artículos de Higiene Personal</option>
-                                <option value="Educación">Material Escolar / Libros</option>
-                                <option value="Mobiliario">Muebles / Equipamiento</option>
-                                <option value="Otros">Otros recursos específicos</option>
+                                <option value="" {% if not necesidad %}selected{% endif %} disabled>Seleccione una categoría...</option>
+                                <option value="Alimentos" {% if necesidad and necesidad.categoria_nombre == 'Alimentos' %}selected{% endif %}>Alimentos No Perecederos</option>
+                                <option value="Ropa" {% if necesidad and necesidad.categoria_nombre == 'Ropa' %}selected{% endif %}>Ropa y Calzado</option>
+                                <option value="Otros" {% if necesidad and necesidad.categoria_nombre == 'Otros' %}selected{% endif %}>Otros recursos específicos</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">🔢 Cantidad Requerida</label>
                             <input type="text" name="cantidad" class="form-control form-control-lg" 
-                                   placeholder="Ej: 20 bolsas de arroz..." required>
+                                   placeholder="Ej: 20 unidades, 50 kg..." value="{% if necesidad %}{{ necesidad.cantidad }}{% endif %}" required>
                         </div>
 
-                        <div class="col-md-6" id="campoVencimiento" style="display: none;">
-                            <label class="form-label fw-bold text-danger">⚠️ Fecha de Caducidad Recomendada</label>
-                            <input type="date" name="fecha_vencimiento" class="form-control form-control-lg border-danger">
+                        {# ════ BLOCK DINÁMICO: ALIMENTOS ════ #}
+                        <div class="col-12 seccion-dinamica" id="seccionAlimentos" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark">⏳ Margen de Caducidad Mínima</label>
+                                    <select id="vencimientoAlimentos" class="form-select">
+                                        <option value="No menor a 15 días en adelante">No menor a 15 días en adelante</option>
+                                        <option value="No menor a 30 días en adelante">No menor a 30 días en adelante</option>
+                                        <option value="No menor a 45 días en adelante">No menor a 45 días en adelante</option>
+                                        <option value="No menor a 60 días en adelante">No menor a 60 días en adelante</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-dark">🥫 ¿Qué tipo de alimentos necesitan?</label>
+                                    <input type="text" id="detalleAlimentos" class="form-control" placeholder="Ej: Arroz, lentejas, enlatados...">
+                                </div>
+                            </div>
                         </div>
 
+                        {# ════ BLOCK DINÁMICO: ROPA Y CALZADO ════ #}
+                        <div class="col-12 seccion-dinamica" id="seccionRopa" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #0d6efd;">
+                            <label class="form-label fw-bold d-block mb-2">👕 Selecciona el tipo de prenda:</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" id="btnTipoRopa" class="btn btn-outline-primary fw-bold px-4 behavior-btn">👕 Ropa</button>
+                                <button type="button" id="btnTipoCalzado" class="btn btn-outline-primary fw-bold px-4 behavior-btn">👟 Calzado</button>
+                            </div>
+                            <input type="hidden" id="ropaSubtipo" value="">
+
+                            <div class="row g-3 id-despliegue-ropa" style="display: none;">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">👥 Público Destino</label>
+                                    <select id="publicoRopa" class="form-select">
+                                        <option value="Hombre">Hombre</option>
+                                        <option value="Mujer">Mujer</option>
+                                        <option value="Niño">Niño</option>
+                                        <option value="Niña">Niña</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">✏️ Especificación de lo que necesitas</label>
+                                    <input type="text" id="detalleRopa" class="form-control" placeholder="Ej: Camisas manga larga, Zapatos escolares...">
+                                </div>
+                            </div>
+                        </div>
+
+                       {# ════ BLOCK DINÁMICO: OTROS RECURSOS ════ #}
+                        <div class="col-12 seccion-dinamica" id="seccionOtros" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #17a2b8;">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">🔍 Tipo de Recurso Especial</label>
+                                    <select id="subcategoriaOtros" name="tipo_recurso_especial" class="form-select">
+                                        <option value="Material Escolar / Libros">Material Escolar / Libros</option>
+                                        <option value="Artículos de Higiene Personal">Artículos de Higiene Personal</option>
+                                        <option value="Muebles / Equipamiento">Muebles / Equipamiento</option>
+                                        <option value="Otros insumos">Otros insumos específicos</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <label class="form-label fw-bold">✏️ Detalle del requerimiento</label>
+                                    <input type="text" id="detalleOtros" class="form-control" placeholder="Ej: Cuadernos cuadriculados...">
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ── CAMPOS BASE RESTANTES ── #}
                         <div class="col-md-6">
                             <label class="form-label fw-bold">🚨 Nivel de Urgencia</label>
                             <select name="urgencia" class="form-select form-control-lg" required>
-                                <option value="baja">Baja (Planificación mensual)</option>
-                                <option value="media" selected>Media (Próximas 2 semanas)</option>
-                                <option value="alta">Alta (Urgente / Crítica)</option>
+                                <option value="baja" {% if necesidad and necesidad.urgencia == 'baja' %}selected{% endif %}>Baja (Planificación mensual)</option>
+                                <option value="media" {% if not necesidad or necesidad.urgencia == 'media' %}selected{% endif %}>Media (Próximas 2 semanas)</option>
+                                <option value="alta" {% if necesidad and necesidad.urgencia == 'alta' %}selected{% endif %}>Alta (Urgente / Crítica)</option>
                             </select>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">📅 Fecha Límite sugerida</label>
-                            <input type="date" name="fecha_limite" class="form-control form-control-lg">
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">📍 Punto de Entrega / Recogida</label>
-                            <input type="text" name="ubicacion" class="form-control form-control-lg" 
-                                   placeholder="Dirección exacta de la fundación" required>
-                        </div>
 
                         <div class="col-md-6">
                             <label class="form-label fw-bold">📞 Teléfono de Coordinación</label>
                             <input type="tel" name="telefono" class="form-control form-control-lg" 
-                                   placeholder="Ej: +54 9 11 1234-5678" required>
+                                   placeholder="Ej: +57 312 3456789" value="{% if necesidad %}{{ necesidad.telefono }}{% else %}{{ fundacion.telefono if fundacion else '' }}{% endif %}" required>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label fw-bold">📝 Descripción Detallada y Destinatarios</label>
-                            <textarea name="descripcion" class="form-control" rows="5" 
-                                      placeholder="Contanos para quién es la ayuda..." required></textarea>
-                        </div>
+                        <input type="hidden" id="descripcionOculta" name="descripcion" value="{% if necesidad %}{{ necesidad.descripcion }}{% endif %}">
 
                         <div class="col-12">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="" id="terminos" required>
+                                <input class="form-check-input" type="checkbox" value="" id="terminos" {% if necesidad %}checked{% endif %} required>
                                 <label class="form-check-label small" for="terminos">
                                     Confirmo que esta solicitud es para fines benéficos y la información es verídica.
                                 </label>
@@ -84,8 +130,8 @@
                         </div>
 
                         <div class="col-12 d-flex gap-3 mt-4">
-                            <button type="submit" class="btn-gestion amarillo flex-grow-1 border-0 py-3 fw-bold shadow-sm">
-                                🚀 PUBLICAR SOLICITUD AHORA
+                            <button type="submit" class="btn-gestion amarillo flex-grow-1 border-0 py-3 fw-bold shadow-sm" style="cursor: pointer;">
+                                {% if necesidad %}💾 GUARDAR CAMBIOS{% else %}🚀 PUBLICAR SOLICITUD AHORA{% endif %}
                             </button>
                             <a href="{{ url_for('home_fundacion') }}" class="btn-gestion btn-eliminar text-decoration-none text-center py-3 px-4 shadow-sm">
                                 ✖ CANCELAR
@@ -105,18 +151,70 @@
 </div>
 
 <script>
+if (document.getElementById('formSolicitudAyuda').getAttribute('action') === '#FormularioIncompleto') {
+    document.getElementById('formSolicitudAyuda').setAttribute('action', "{{ url_for('solicitar_ayuda') }}");
+}
+
 document.getElementById('selectCategoria').addEventListener('change', function() {
-    var campoVencimiento = document.getElementById('campoVencimiento');
-    var inputVencimiento = campoVencimiento.querySelector('input');
-    
+    document.querySelectorAll('.seccion-dinamica').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.seccion-dinamica input, .seccion-dinamica select').forEach(el => el.removeAttribute('required'));
+
     if (this.value === 'Alimentos') {
-        campoVencimiento.style.display = 'block';
-        inputVencimiento.setAttribute('required', 'true'); // Lo hace obligatorio si es Alimentos
-    } else {
-        campoVencimiento.style.display = 'none';
-        inputVencimiento.removeAttribute('required');
-        inputVencimiento.value = ''; // Limpia el valor si cambian de opinión
+        document.getElementById('seccionAlimentos').style.display = 'block';
+        document.getElementById('detalleAlimentos').setAttribute('required', 'true');
+    } 
+    else if (this.value === 'Ropa') {
+        document.getElementById('seccionRopa').style.display = 'block';
+    } 
+    else if (this.value === 'Otros') {
+        document.getElementById('seccionOtros').style.display = 'block';
+        document.getElementById('detalleOtros').setAttribute('required', 'true');
     }
+});
+
+const btnRopa = document.getElementById('btnTipoRopa');
+const btnCalzado = document.getElementById('btnTipoCalzado');
+const ropaSubtipo = document.getElementById('ropaSubtipo');
+const contenedorDespliegueRopa = document.querySelector('.id-despliegue-ropa');
+
+function seleccionarSubtipoRopa(botonActivo, botonInactivo, valor) {
+    botonActivo.classList.replace('btn-outline-primary', 'btn-primary');
+    botonInactivo.classList.replace('btn-primary', 'btn-outline-primary');
+    ropaSubtipo.value = valor;
+    contenedorDespliegueRopa.style.display = 'flex';
+    document.getElementById('detalleRopa').setAttribute('required', 'true');
+}
+
+btnRopa.addEventListener('click', function() { seleccionarSubtipoRopa(btnRopa, btnCalzado, 'Ropa'); });
+btnCalzado.addEventListener('click', function() { seleccionarSubtipoRopa(btnCalzado, btnRopa, 'Calzado'); });
+
+if(document.getElementById('selectCategoria').value !== "") {
+    document.getElementById('selectCategoria').dispatchEvent(new Event('change'));
+}
+
+document.getElementById('formSolicitudAyuda').addEventListener('submit', function(e) {
+    const categoria = document.getElementById('selectCategoria').value;
+    let descripcionFinal = "";
+
+    if (categoria === 'Alimentos') {
+        const vence = document.getElementById('vencimientoAlimentos').value;
+        const queNecesita = document.getElementById('detalleAlimentos').value;
+        descripcionFinal = `Necesitamos: ${queNecesita}. (Caducidad requerida: ${vence})`;
+    } 
+    else if (categoria === 'Ropa') {
+        const subtipo = ropaSubtipo.value || "Prendas";
+        const destino = document.getElementById('publicoRopa').value;
+        const queNecesita = document.getElementById('detalleRopa').value;
+        descripcionFinal = `Requerimos ${subtipo} para ${destino}. Detalle: ${queNecesita}`;
+    } 
+    else if (categoria === 'Otros') {
+        const subcat = document.getElementById('subcategoriaOtros').value;
+        const queNecesita = document.getElementById('detalleOtros').value;
+        descripcionFinal = `Categoría específica: ${subcat}. Requerimiento: ${queNecesita}`;
+    }
+
+    document.getElementById('descripcionOculta').value = descripcionFinal;
 });
 </script>
 {% endblock %}
+

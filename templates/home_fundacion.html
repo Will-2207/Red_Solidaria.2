@@ -132,7 +132,69 @@
             border:none; border-radius:50%; width:36px; height:36px;
             font-size:1.1rem; cursor:pointer; font-weight:700;
         }
+
+                /* Contenedor que obliga a las tarjetas a alinearse horizontalmente */
+        .contenedor-solicitudes-carrusel {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 15px;
+            scroll-behavior: smooth;
+        }
+
+        /* Forzar que cada tarjeta mida un ancho fijo y no se deforme */
+        .tarjeta-carrusel-item {
+            flex: 0 0 320px; /* No se reduce, no se estira, mide exactamente 320px */
+            max-width: 320px;
+        }
+
+        /* Controlar que las descripciones largas no desalineen las tarjetas */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+
+        /* Diseño de la barra de scroll horizontal */
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar {
+            height: 8px; /* Altura de la barra */
+        }
+
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb {
+            background: #ffc107; /* Color amarillo a juego con el borde de tu sección */
+            border-radius: 10px;
+        }
+
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb:hover {
+            background: #e0a800; /* Se oscurece al pasar el puntero */
+        }
+
+                /* Customización de la barra horizontal del carrusel */
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar {
+            height: 6px;
+        }
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 10px;
+        }
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .tarjeta-carrusel-item:hover {
+            transform: translateY(-3px);
+        }
     </style>
+
 {% endblock %}
 
 {% block content %}
@@ -172,13 +234,13 @@
                 {# ── Foto de perfil ── #}
                 <div class="text-center mb-3">
                     {% if fundacion.foto_perfil %}
-                        <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}"
-                            class="foto-perfil-lateral" alt="Foto fundación">
-                    {% else %}
-                        <div class="avatar-inicial-lateral">
-                            {{ fundacion.nombre[0]|upper }}
-                        </div>
-                    {% endif %}
+                    <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}"
+                        class="foto-perfil-lateral" alt="Foto fundación">
+                {% else %}
+                    <div class="avatar-inicial-lateral">
+                        {{ fundacion.nombre[0]|upper }}
+                    </div>
+                {% endif %}
                 </div>
 
                 <h3 class="fw-bold text-center mb-2">{{ fundacion.nombre }}</h3>
@@ -245,61 +307,88 @@
         {# ══ CONTENIDO PRINCIPAL ══ #}
         <div class="col-lg-9">
 
-            {# ══ SECCIÓN SOLICITUDES DE AYUDA (PANEL FUNDACIÓN) ══ #}
-                <div class="panel-section mb-5 shadow-sm border-0"
-                     style="background:#fffdf0;border-left:5px solid #ffc107 !important;border-radius:15px;padding:25px;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="panel-title m-0">
-                        <i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda
-                    </h3>
-                    <span class="badge bg-warning text-dark">Tus peticiones creadas</span>
-                </div>
+            {# ══ SECCIÓN SOLICITUDES DE AYUDA (PANEL FUNDACIÓN) — VERSION CARRUSEL ══ #}
+<div class="panel-section mb-5 shadow-sm border-0"
+     style="background:#fffdf0;border-left:5px solid #ffc107 !important;border-radius:15px;padding:25px;">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h3 class="panel-title m-0">
+            <i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda
+        </h3>
+        <a href="{{ url_for('solicitudes_fundacion_completo') }}" class="btn btn-warning btn-sm fw-bold shadow-sm" style="border-radius: 20px; padding: 6px 15px;">
+            🔗 Ver todas mis solicitudes
+        </a>
+    </div>
 
-                    <div class="row g-4">
-                        {% for n in solicitudes_ayuda %}
-                        <div class="col-md-6">
-                            <div class="card card-necesidad h-100 border-0 shadow-sm">
-                                <div class="card-body p-4">
-                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                        <small class="text-muted">
-                                            <i class="far fa-calendar-alt"></i> Vence: {{ n.fecha_limite if n.fecha_limite else 'N/A' }}
-                                        </small>
-                                        
-                                        {% if n.estado == 'pendiente' %}
-                                            <span class="badge bg-warning text-dark">Pendiente</span>
-                                        {% elif n.estado == 'asignada' %}
-                                            <span class="badge bg-primary">Asignada</span>
-                                        {% else %}
-                                            <span class="badge bg-success">Completada</span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <p class="card-text text-muted small" style="line-height:1.5;">
-                                            {{ n.descripcion }}
-                                        </p>
-                                    </div>
-
-                                    <div class="row pt-2 border-top">
-                                        <div class="col-6">
-                                            <small class="text-primary d-block fw-bold">📦 Cantidad:</small>
-                                            <span class="fw-bold text-dark">{{ n.cantidad }}</span>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-info d-block fw-bold">🏷️ Categoría:</small>
-                                            <span class="badge bg-light text-dark border">{{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
+    <div class="contenedor-solicitudes-carrusel" style="display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 10px 5px 15px 5px; scrollbar-width: thin;">
+        {% for n in solicitudes_ayuda %}
+            {# Ocultar las que tengan borrado lógico #}
+            {% if n.estado != 'eliminada' %}
+            <div class="tarjeta-carrusel-item" style="flex: 0 0 320px; transition: transform 0.2s ease-in-out;">
+                <div class="card card-necesidad h-100 border-0 shadow-sm d-flex flex-column justify-content-between">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-alt"></i> Publicado: {{ n.fecha_registro if n.fecha_registro else 'Reciente' }}
+                                </small>
+                                
+                                {% if n.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif n.estado == 'asignada' %}
+                                    <span class="badge bg-primary">Asignada</span>
+                                {% else %}
+                                    <span class="badge bg-success">Completada</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <p class="card-text text-muted small line-clamp-3" style="line-height:1.5; min-height: 54px;">
+                                    {{ n.descripcion }}
+                                </p>
                             </div>
                         </div>
-                        {% else %}
-                        <div class="col-12 text-center py-4">
-                            <p class="text-muted italic">Aún no has publicado ninguna solicitud de ayuda.</p>
+
+                        <div class="row pt-2 border-top mt-auto mb-3">
+                            <div class="col-6">
+                                <small class="text-primary d-block fw-bold">📦 Cantidad:</small>
+                                <span class="fw-bold text-dark">{{ n.cantidad }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-info d-block fw-bold">🏷️ Categoría:</small>
+                                <span class="badge bg-light text-dark border text-truncate d-block">{{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
+                            </div>
                         </div>
-                        {% endfor %}
+
+                        {# ── NUEVOS BOTONES DE ACCIÓN CONDICIONALES ── #}
+                        <div class="d-flex gap-2 border-top pt-3">
+                            {% if n.estado == 'pendiente' %}
+                                {# Permite editar o eliminar solo si no tiene donante vinculado #}
+                                <a href="{{ url_for('editar_necesidad_ruta', id=n.id) }}" class="btn btn-sm btn-outline-warning fw-bold flex-grow-1 py-2" style="border-radius: 8px;">
+                                    ✏️ Editar
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger fw-bold flex-grow-1 py-2" style="border-radius: 8px;" onclick="confirmarEliminar('{{ n.id }}')">
+                                    🗑️ Eliminar
+                                </button>
+                            {% else %}
+                                {# Si ya fue asignada o completada por un donante se bloquea #}
+                                <div class="alert alert-success m-0 p-2 text-center w-100 fw-bold small" style="border-radius: 8px; font-size: 0.75rem; background-color: #d1e7dd; color: #0f5132; border: none;">
+                                    🤝 ¡Ayuda Vinculada!
+                                </div>
+                            {% endif %}
+                        </div>
+
                     </div>
                 </div>
+            </div>
+            {% endif %}
+        {% else %}
+        <div class="w-100 text-center py-4">
+            <p class="text-muted italic">Aún no has publicado ninguna solicitud de ayuda.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 
             {# ── Rastrear y Reportar ── #}
             <div class="panel-section mb-4">
@@ -371,14 +460,15 @@
                         <div class="donacion-card p-3 border rounded shadow-sm bg-white h-100">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="badge bg-info text-dark">{{ d.nombre_categoria }}</span>
+                                {# CORREGIDO: Mapeo correcto apuntando a la variable real de estado_donante #}
                                 <span class="badge
-                                    {% if d.estado_fundacion == 'aceptada'  %}bg-success
-                                    {% elif d.estado_fundacion == 'rechazada' %}bg-danger
-                                    {% elif d.estado_fundacion == 'eliminada' %}bg-warning text-dark
+                                    {% if d.estado_donante == 'recibido'  %}bg-success
+                                    {% elif d.estado_donante == 'rechazado' %}bg-danger
+                                    {% elif d.estado_donante == 'eliminado' %}bg-warning text-dark
                                     {% else %}bg-warning text-dark{% endif %}">
-                                    {% if d.estado_fundacion == 'aceptada'  %}RECIBIDO
-                                    {% elif d.estado_fundacion == 'rechazada' %}RECHAZADO
-                                    {% elif d.estado_fundacion == 'eliminada' %}ELIMINADO
+                                    {% if d.estado_donante == 'recibido'  %}RECIBIDO
+                                    {% elif d.estado_donante == 'rechazado' %}RECHAZADO
+                                    {% elif d.estado_donante == 'eliminado' %}ELIMINADO
                                     {% else %}PENDIENTE{% endif %}
                                 </span>
                             </div>
@@ -463,7 +553,7 @@
             </div>
         </div> 
     </div> 
-</div> 
+</div>
 
 {# ── Modal foto ampliada ── #}
 <div id="modalFotoOverlay" onclick="cerrarFoto()">
@@ -484,14 +574,12 @@
                     
                     <div class="mb-3">
                         <label for="nombre_fundacion" class="form-label fw-bold">Nombre de la Fundación</label>
-                        {# Mantiene tus variables originales para que cargue la info de base #}
                         <input type="text" class="form-control" id="nombre_fundacion" name="nombre" 
                             value="{{ fundacion.nombre if fundacion else session.get('nombre', '') }}" required>
                     </div>
 
                     <div class="mb-3">
                         <label for="usuario_encargado" class="form-label fw-bold">Usuario Encargado (Responsable)</label>
-                        {# CORREGIDO: Prioriza session.usuario_encargado para reflejar el cambio inmediato #}
                         <input type="text" class="form-control" id="usuario_encargado" name="usuario_encargado" 
                             value="{{ session.get('usuario_encargado') or (fundacion.usuario_encargado if fundacion else '') }}" required>
                     </div>
@@ -507,10 +595,11 @@
                     <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary fw-bold">Guardar Cambios</button>
                 </div>
-</form>
+            </form>
         </div>
     </div>
 </div>
+
 
 <script>
     // Control de envío del reporte con spinner
@@ -522,6 +611,13 @@
         }
         return true;
     }
+        
+
+    function confirmarEliminar(idSolicitud) {
+    if (confirm("¿Estás seguro de que deseas eliminar esta solicitud? No se mostrará en el panel, pero quedará guardada en el historial del sistema.")) {
+        window.location.href = "/eliminar_solicitud/" + idSolicitud;
+    }
+}
 
     // Funciones para visualizar las fotos adjuntas en grande
     function abrirFoto(src) {
