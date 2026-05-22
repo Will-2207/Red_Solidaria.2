@@ -236,20 +236,29 @@ class DonacionController:
 
         usuario_id = session["usuario_id"]
 
+        # 1. Capturamos exactamente los nombres de los inputs de tu formulario HTML
         q = request.args.get('q')
-        categoria = request.args.get('categoria')
-        estado = request.args.get('estado')
+        categoria = request.args.get('cat')  # 'cat' coincide con tu <select name="cat">
+        estado = request.args.get('est')     # 'est' coincide con tu <select name="est">
         fundacion = request.args.get('fundacion')
 
+        # 2. El historial se filtra de forma normal utilizando los criterios del formulario inferior
         historial = self.modelo.obtener_donaciones_por_usuario_filtrado(
-            usuario_id, q=q, Lazy_loading=False, categoria=categoria, estado=estado, fundacion=fundacion
+            usuario_id, q=q, categoria=categoria, estado=estado, fundacion=fundacion
         )
 
+        # 3. Traemos la lista completa de categorías para renderizar las opciones del formulario
         categorias = self.modelo.obtener_categorias()
+
+        # 4. SOLUCIÓN AL CARRUSEL: Lo cargamos de forma independiente pasándole únicamente el usuario_id.
+        # Al no heredar los filtros 'q' y 'cat' del formulario inferior, el carrusel no se romperá ni 
+        # desaparecerá jamás cuando uses el buscador de abajo.
+        necesidades = self.modelo.obtener_necesidades_activas(q=None, cat=None, usuario_id=usuario_id)
 
         return render_template("home_donador.html", 
                                historial=historial, 
-                               categorias=categorias) 
+                               categorias=categorias,
+                               necesidades=necesidades)
         
     def gestionar_donacion_accion(self):
         import requests
@@ -258,7 +267,9 @@ class DonacionController:
 
         donacion_id = request.form.get('donacion_id')
         accion = request.form.get('accion')
-        fundacion_id = session.get('usuario_id') 
+        
+        # Ojo: El ID que está en sesión para la fundación es el ID del usuario logueado
+        usuario_id = session.get('usuario_id') 
 
         nuevo_estado = {
             'aceptar': 'recibido',
@@ -270,9 +281,26 @@ class DonacionController:
             flash("❌ Acción no válida", "danger")
             return redirect(url_for('home_fundacion'))
 
-        exito = self.modelo.actualizar_estado_donacion(donacion_id, nuevo_estado, fundacion_id)
+        # 1. Actualizamos primero el estado en la tabla de donaciones
+        exito = self.modelo.actualizar_estado_donacion(donacion_id, nuevo_estado)
 
         if exito:
+            # ── Sincronización con la Solicitud de Ayuda (Necesidad) ──
+            try:
+                donacion_info = self.modelo.obtener_donacion_por_id(donacion_id)
+                if donacion_info and donacion_info.get('necesidad_id'):
+                    nec_id = donacion_info['necesidad_id']
+                    
+                    if accion == 'rechazar':
+                        # Cambia el estado de la solicitud a 'rechazado'
+                        self.modelo.cambiar_estado_necesidad(nec_id, 'rechazado')
+                    elif accion == 'aceptar':
+                        # Cambia el estado de la solicitud a 'completada'
+                        self.modelo.cambiar_estado_necesidad(nec_id, 'completada')
+            except Exception as e:
+                print(f"⚠️ Error al sincronizar el estado de la necesidad: {e}")
+            # ─────────────────────────────────────────────────────────
+
             if accion in ['aceptar', 'rechazar']:
                 try:
                     datos_correo = {
@@ -284,12 +312,11 @@ class DonacionController:
                 except Exception as e:
                     print(f"Error notificación Java: {e}")
             
-            flash(f"✅ Donación marcada como {nuevo_estado}", "success")
+            flash(f"✅ Estado de la donación actualizado a: {nuevo_estado}", "success")
         else:
             flash("❌ No se pudo actualizar la donación", "danger")
 
         return redirect(url_for('home_fundacion'))
-
     # =========================================================================
     # NUEVO: ACCIÓN PARA RECHAZAR/OCULTAR UNA NECESIDAD DESDE EL DONANTE
     # =========================================================================

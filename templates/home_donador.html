@@ -287,7 +287,8 @@
                 <span class="badge bg-warning text-dark">Peticiones actuales</span>
             </div>
 
-            {# ── CARRUSEL DESLIZABLE ESTILO NETFLIX ── #}
+           
+ {# ── CARRUSEL DESLIZABLE ESTILO NETFLIX ── #}
             <div class="netflix-container mb-5">
                 <div class="netflix-slider">
                     {% for n in necesidades %}
@@ -316,39 +317,50 @@
                                     <span class="badge bg-info text-dark" style="font-size: 0.85em;">🏷️ Categoría: {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
                                 </div>
 
-                                <p class="card-text text-muted small" style="line-height:1.5;">
-                                    {{ n.descripcion[:150] }}...
-                                </p>
+                               <p class="card-text text-muted small" style="line-height:1.5;">
+                                        {{ n.descripcion[:150] if n.descripcion else 'Sin descripción disponible' }}...
+                                    </p>
                             </div>
                             
+                            {# ── CARD FOOTER CORREGIDO CON VALIDACIÓN DE ESTADO ── #}
                             <div class="card-footer bg-transparent border-0 p-4 pt-0">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm visual-btn"
-                                                style="border-radius:12px; font-size: 0.85rem;"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#modalDetalleAyuda"
-                                                data-url="{{ url_for('donar', necesidad_id=n.id) }}"
-                                                onclick="mostrarDetalleAyuda(
-                                                    '{{ n.nombre_fundacion|e }}',
-                                                    '{{ n.descripcion|e }}',
-                                                    '',
-                                                    '{{ n.fecha_creacion|e }}',
-                                                    'Fundación Verificada',
-                                                    this.getAttribute('data-url')
-                                                )">
-                                            🤝 AYUDAR
-                                        </button>
+                                {% if n.interaccion_estado == 'ayudado' %}
+                                    <div class="w-100 text-center py-2 bg-light rounded-3 text-success fw-bold" style="font-size: 0.9rem;">
+                                        🎉 Ya registraste ayuda para esta solicitud
                                     </div>
-                                    <div class="col-6">
-                                        <form action="{{ url_for('rechazar_necesidad', necesidad_id=n.id) }}" method="POST" onsubmit="return confirm('¿Deseas ocultar y rechazar esta solicitud definitivamente?');">
-                                            <button type="submit" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
-                                                    style="border-radius:12px; font-size: 0.85rem;">
-                                                ❌ RECHAZAR
+                                {% elif n.interaccion_estado == 'rechazado' %}
+                                    <div class="w-100 text-center py-2 bg-light rounded-3 text-danger fw-bold" style="font-size: 0.9rem;">
+                                        ❌ Has descartado esta solicitud
+                                    </div>
+                                {% else %}
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button class="btn btn-warning w-100 fw-bold py-2 shadow-sm visual-btn"
+                                                    style="border-radius:12px; font-size: 0.85rem;"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalDetalleAyuda"
+                                                    data-url="{{ url_for('donar', necesidad_id=n.id) }}"
+                                                    onclick="mostrarDetalleAyuda(
+                                                        '{{ n.nombre_fundacion|e }}',
+                                                        '{{ n.descripcion|e }}',
+                                                        '',
+                                                        '{{ n.fecha_creacion|e }}',
+                                                        'Fundación Verificada',
+                                                        this.getAttribute('data-url')
+                                                    )">
+                                                🤝 AYUDAR
                                             </button>
-                                        </form>
+                                        </div>
+                                        <div class="col-6">
+                                            <form action="{{ url_for('rechazar_necesidad', necesidad_id=n.id) }}" method="POST" onsubmit="return confirm('¿Deseas ocultar y rechazar esta solicitud definitivamente?');">
+                                                <button type="submit" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
+                                                        style="border-radius:12px; font-size: 0.85rem;">
+                                                    ❌ RECHAZAR
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
-                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -361,60 +373,62 @@
             </div>
 
 
-                {# ── RASTREAR Y REPORTAR DONACIONES ── #}
-                <div class="panel-section mb-4">
-                    <h3 class="panel-title mb-3">🔍 Rastrear y Reportar Donaciones</h3>
-                    <div class="filtro-container">
-                        <form method="GET" action="{{ url_for('home_donador') }}" class="row g-2">
-                            <div class="col-md-10 mb-2">
-                                <label class="small fw-bold">Correo Destinatario (Para enviar Reporte PDF)</label>
-                                <input type="email" name="correo_reporte"
-                                       class="form-control form-control-sm"
-                                       placeholder="ejemplo@correo.com"
-                                       value="{{ request.args.get('correo_reporte', '') }}">
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end mb-2">
-                                <button type="submit" name="accion" value="reporte"
-                                         class="btn btn-danger btn-sm w-100 fw-bold">
-                                    📧 Enviar Reporte al Correo
-                                </button>
-                            </div>
-                            <hr class="my-2">
-                            <div class="col-md-3">
-                                <label class="small fw-bold">Palabra clave</label>
-                                <input type="text" name="q" class="form-control form-control-sm"
-                                       placeholder="Descripción..." value="{{ request.args.get('q', '') }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="small fw-bold">Fundación destino</label>
-                                <input type="text" name="fundacion" class="form-control form-control-sm"
-                                       placeholder="Nombre fundación..." value="{{ request.args.get('fundacion', '') }}">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="small fw-bold">Categoría</label>
-                                <select name="cat" class="form-select form-select-sm">
-                                    <option value="">Todas</option>
-                                    <option value="Alimentos" {% if request.args.get('cat') == 'Alimentos' %}selected{% endif %}>Alimentos</option>
-                                    <option value="Ropa"      {% if request.args.get('cat') == 'Ropa'      %}selected{% endif %}>Ropa</option>
-                                    <option value="Otros"     {% if request.args.get('cat') == 'Otros'     %}selected{% endif %}>Otros</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label class="small fw-bold">Estado</label>
-                                <select name="est" class="form-select form-select-sm">
-                                    <option value="">Todos</option>
-                                    <option value="pendiente" {% if request.args.get('est') == 'pendiente' %}selected{% endif %}>Pendiente</option>
-                                    <option value="recibido"  {% if request.args.get('est') == 'recibido'  %}selected{% endif %}>Realizadas</option>
-                                    <option value="rechazado" {% if request.args.get('est') == 'rechazado' %}selected{% endif %}>Rechazado</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" name="accion" value="buscar"
-                                        class="btn btn-primary btn-sm w-100 fw-bold">🔍 BUSCAR</button>
-                            </div>
-                        </form>
-                    </div>
+            {# ── RASTREAR Y REPORTAR DONACIONES (TU FORMULARIO ORIGINAL INTACTO) ── #}
+            <div class="panel-section mb-4">
+                <h3 class="panel-title mb-3">🔍 Rastrear y Reportar Donaciones</h3>
+                <div class="filtro-container">
+                    <form method="GET" action="{{ url_for('home_donador') }}" class="row g-2">
+                        <div class="col-md-10 mb-2">
+                            <label class="small fw-bold">Correo Destinatario (Para enviar Reporte PDF)</label>
+                            <input type="email" name="correo_reporte"
+                                   class="form-control form-control-sm"
+                                   placeholder="ejemplo@correo.com"
+                                   value="{{ request.args.get('correo_reporte', '') }}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end mb-2">
+                            <button type="submit" name="accion" value="reporte"
+                                     class="btn btn-danger btn-sm w-100 fw-bold">
+                                📧 Enviar Reporte al Correo
+                            </button>
+                        </div>
+                        <hr class="my-2">
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Palabra clave</label>
+                            <input type="text" name="q" class="form-control form-control-sm"
+                                   placeholder="Descripción..." value="{{ request.args.get('q', '') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Fundación destino</label>
+                            <input type="text" name="fundacion" class="form-control form-control-sm"
+                                   placeholder="Nombre fundación..." value="{{ request.args.get('fundacion', '') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="small fw-bold">Categoría</label>
+                            <select name="cat" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                                <option value="Alimentos" {% if request.args.get('cat') == 'Alimentos' %}selected{% endif %}>Alimentos</option>
+                                <option value="Ropa"      {% if request.args.get('cat') == 'Ropa'      %}selected{% endif %}>Ropa</option>
+                                <option value="Otros"     {% if request.args.get('cat') == 'Otros'     %}selected{% endif %}>Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="small fw-bold">Estado</label>
+                            <select name="est" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="pendiente" {% if request.args.get('est') == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                                <option value="recibido"  {% if request.args.get('est') == 'recibido'  %}selected{% endif %}>Realizadas</option>
+                                <option value="rechazado" {% if request.args.get('est') == 'rechazado' %}selected{% endif %}>Rechazado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" name="accion" value="buscar"
+                                    class="btn btn-primary btn-sm w-100 fw-bold">🔍 BUSCAR</button>
+                        </div>
+                    </form>
                 </div>
+            </div>
+
+
 
                 {# ── TABLA DE HISTORIAL DE DONACIONES ── #}
                 <div id="mis-donaciones-realizadas" class="panel-section shadow-sm">

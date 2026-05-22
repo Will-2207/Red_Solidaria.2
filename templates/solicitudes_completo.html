@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -56,13 +57,15 @@
                     <span class="badge bg-warning text-dark">Pendiente</span>
                 {% elif n.estado == 'asignada' or n.estado == 'aprobado' %}
                     <span class="badge bg-primary">Asignada</span>
+                {% elif n.estado == 'rechazado' or n.estado == 'rechazada' %}
+                    <span class="badge bg-danger">Rechazado</span>
                 {% else %}
                     <span class="badge bg-success">Completada</span>
                 {% endif %}
             </td>
             <td class="text-center pe-4">
                 <button type="button" class="btn btn-sm btn-outline-dark" style="border-radius: 20px;" 
-                        data-bs-toggle="modal" data-bs-target="#modalDetalle{{ n.id }}">
+                        data-bs-toggle="collapse" data-bs-target="#modalDetalle{{ n.id }}" data-bs-toggle="modal" data-bs-target="#modalDetalle{{ n.id }}">
                     👁️ Ver Detalle
                 </button>
             </td>
@@ -85,6 +88,8 @@
                                     <span class="badge bg-warning text-dark">Pendiente</span>
                                 {% elif n.estado == 'asignada' or n.estado == 'aprobado' %}
                                     <span class="badge bg-primary">Asignada</span>
+                                {% elif n.estado == 'rechazado' or n.estado == 'rechazada' %}
+                                    <span class="badge bg-danger">Rechazado</span>
                                 {% else %}
                                     <span class="badge bg-success">Completada</span>
                                 {% endif %}
@@ -125,3 +130,4 @@
 }
 </style>
 {% endblock %}
+

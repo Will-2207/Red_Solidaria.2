@@ -169,10 +169,17 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
+            # Modificamos el SQL para traer el estado de la donación si existe un flujo amarrado
             query = """
-                SELECT n.*, c.nombre AS nombre_categoria
+                SELECT 
+                    n.id, n.fundacion_id, n.categoria_id, n.cantidad, n.tipo_urgencia,
+                    n.fecha_limite, n.ubicacion, n.telefono, n.descripcion, n.fecha_vencimiento,
+                    n.tipo_recurso_especial, n.punto_entrega,
+                    c.nombre AS nombre_categoria,
+                    COALESCE(d.estado_donante, n.estado) AS estado
                 FROM necesidades n
                 LEFT JOIN categorias c ON n.categoria_id = c.id
+                LEFT JOIN donaciones d ON d.necesidad_id = n.id
                 WHERE n.fundacion_id = %s AND n.estado != 'eliminado'
                 ORDER BY n.id DESC
             """
@@ -183,7 +190,7 @@ class DonacionModel:
             return []
         finally:
             if conn:
-                conn.close()            
+                conn.close()         
                 
     def obtener_donaciones_por_usuario_filtrado(self, usuario_id, q=None, categoria=None, estado=None, fundacion=None):
         """Filtros multicriterio para el historial personal del Donador (Versión Final)."""
@@ -274,33 +281,31 @@ class DonacionModel:
             conn.close()
             
     def obtener_necesidades_activas(self, q=None, cat=None, usuario_id=None):
-        """Obtiene necesidades activas uniendo usuarios para extraer el correo real de la fundación."""
+        """Obtiene necesidades de la base de datos de manera robusta para el panel."""
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
             
-            # CONSULTA BLINDADA: Unimos con la tabla usuarios 'u' para traer el correo real
+            # Traemos todo sin importar el enum estricto para forzar el renderizado de prueba
             query = """
                 SELECT n.*, 
-                       n.fecha AS fecha_creacion,         -- Mapeamos 'fecha' como 'fecha_creacion' para el HTML
+                       n.fecha AS fecha_creacion,
                        f.nombre AS nombre_fundacion, 
-                       u.correo AS fundacion_correo,      -- Extraemos el correo desde la tabla usuarios
-                       f.telefono AS fundacion_telefono,  -- Extraemos el teléfono de fundaciones
-                       c.nombre AS nombre_categoria
+                       u.correo AS fundacion_correo,
+                       f.telefono AS fundacion_telefono,
+                       c.nombre AS nombre_categoria,
+                       CASE 
+                           WHEN d.id IS NOT NULL THEN 'ayudado'
+                           ELSE NULL 
+                       END AS interaccion_estado
                 FROM necesidades n
-                JOIN fundaciones f ON n.fundacion_id = f.id
-                JOIN usuarios u ON f.usuario_id = u.id     -- Conexión clave para obtener el correo
-                JOIN categorias c ON n.categoria_id = c.id
-                WHERE n.estado IN ('pendiente', 'asignada') -- Estados reales según tu ENUM de la BD
+                LEFT JOIN fundaciones f ON n.fundacion_id = f.id
+                LEFT JOIN usuarios u ON f.usuario_id = u.id
+                LEFT JOIN categorias c ON n.categoria_id = c.id
+                LEFT JOIN donaciones d ON n.id = d.necesidad_id AND d.usuario_id = %s
+                WHERE 1=1
             """
-            params = []
-            
-            if q:
-                query += " AND n.descripcion LIKE %s"
-                params.append(f"%{q}%")
-            if cat:
-                query += " AND n.categoria_id = %s"
-                params.append(cat)
+            params = [usuario_id]
                 
             query += " ORDER BY n.id DESC"  
             cursor.execute(query, tuple(params))
@@ -458,6 +463,20 @@ class DonacionModel:
             }
         finally:
             conn.close()
+            
+    def obtener_donacion_por_id(self, donacion_id):
+        """NUEVO: Obtiene una donación específica para conocer su necesidad_id vinculada."""
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            query = "SELECT * FROM donaciones WHERE id = %s"
+            cursor.execute(query, (donacion_id,))
+            return cursor.fetchone()
+        except Exception as e:
+            print(f"❌ Error en obtener_donacion_por_id: {e}")
+            return None
+        finally:
+            conn.close()        
             
 
     def eliminar_donacion_logica(self, donacion_id):
