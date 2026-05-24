@@ -13,12 +13,16 @@ class DonacionModel:
             cursor = conn.cursor()
             c_id = int(categoria_id) if categoria_id else 0
             
+            # Aseguramos que si fundacion_id viene como lista o string desde el controlador, se extraiga el valor correcto
+            f_id = fundacion_id[0] if isinstance(fundacion_id, list) else fundacion_id
+            f_id = int(f_id) if f_id else 0
+
             query = """
                 INSERT INTO donaciones 
                 (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, fotos)
-                VALUES (%s, %s, %s, %s, %s, 'pendiente', NOW(), %s)
+                VALUES (%s, %s, %s, %s, %s, 'recibido', NOW(), %s)
             """
-            cursor.execute(query, (donador_id, fundacion_id, c_id, cantidad, descripcion, fotos_str))
+            cursor.execute(query, (donador_id, f_id, c_id, cantidad, descripcion, fotos_str))
             
             conn.commit()
             return True
@@ -27,7 +31,8 @@ class DonacionModel:
             return False
         finally:
             conn.close()
-
+            
+            
     def registrar_donacion_con_necesidad(self, donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_id, fotos_str=None):
         """NUEVO: Registra la donación asociando explícitamente el necesidad_id del carrusel."""
         conn = get_connection()
@@ -36,12 +41,16 @@ class DonacionModel:
             c_id = int(categoria_id) if categoria_id else 0
             n_id = int(necesidad_id) if necesidad_id else None
             
+            # Aseguramos que si fundacion_id viene como lista o string desde el controlador, se extraiga el valor correcto
+            f_id = fundacion_id[0] if isinstance(fundacion_id, list) else fundacion_id
+            f_id = int(f_id) if f_id else 0
+            
             query = """
                 INSERT INTO donaciones 
                 (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, necesidad_id, fotos)
-                VALUES (%s, %s, %s, %s, %s, 'pendiente', NOW(), %s, %s)
+                VALUES (%s, %s, %s, %s, %s, 'recibido', NOW(), %s, %s)
             """
-            cursor.execute(query, (donador_id, fundacion_id, c_id, cantidad, descripcion, n_id, fotos_str))
+            cursor.execute(query, (donador_id, f_id, c_id, cantidad, descripcion, n_id, fotos_str))
             
             conn.commit()
             return True
@@ -123,8 +132,10 @@ class DonacionModel:
             # 1. Base de la consulta con los alias correctos para los reportes
             query = """
                 SELECT d.*, 
-                       c.nombre as nombre_categoria, 
-                       u.nombre as nombre_donante
+                        c.nombre as nombre_categoria, 
+                        u.nombre as nombre_donante,
+                        u.telefono,  -- <-- IMPORTANTE: Agregar esto para mapear en la tarjeta
+                        u.correo     -- <-- IMPORTANTE: Agregar esto para mapear en la tarjeta
                 FROM donaciones d
                 JOIN categorias c ON d.categoria_id = c.id
                 JOIN usuarios u ON d.usuario_id = u.id
@@ -193,83 +204,58 @@ class DonacionModel:
                 conn.close()         
                 
     def obtener_donaciones_por_usuario_filtrado(self, usuario_id, q=None, categoria=None, estado=None, fundacion=None):
-        """Filtros multicriterio para el historial personal del Donador (Versión Final)."""
+        """Filtros multicriterio para el historial personal del Donador."""
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            # 1. SQL limpio sin la columna 'estado' que borramos
             query = """
-                SELECT 
-                d.id, d.usuario_id, d.categoria_id, d.descripcion, d.cantidad, 
-                d.fecha, d.fotos, d.estado_donante, d.fundacion_id,
-                c.nombre AS categoria_nombre,
-                fun.nombre AS fundacion_nombre,
-                d.estado_donante
-            FROM donaciones d
-            LEFT JOIN categorias c ON d.categoria_id = c.id
-            LEFT JOIN fundaciones fun ON d.fundacion_id = fun.id
-            WHERE d.usuario_id = %s
+                SELECT d.*, c.nombre AS categoria_nombre, fun.nombre AS fundacion_nombre
+                FROM donaciones d
+                LEFT JOIN categorias c ON d.categoria_id = c.id
+                LEFT JOIN fundaciones fun ON d.fundacion_id = fun.id
+                WHERE d.usuario_id = %s
             """
             params = [usuario_id]
-
-            # 2. Filtros dinámicos de base de datos
             if q:
-                query += " AND d.descripcion LIKE %s"
-                params.append(f"%{q}%")
+                query += " AND d.descripcion LIKE %s"; params.append(f"%{q}%")
             if categoria:
-                query += " AND d.categoria_id = %s"
-                params.append(categoria)
+                query += " AND d.categoria_id = %s"; params.append(categoria)
             if fundacion:
-                query += " AND fun.nombre LIKE %s"
-                params.append(f"%{fundacion}%")
-
+                query += " AND fun.nombre LIKE %s"; params.append(f"%{fundacion}%")
+            
             query += " ORDER BY d.fecha DESC"
             cursor.execute(query, tuple(params))
             donaciones = cursor.fetchall()
 
-            # 3. Mapeo de lógica de estados
             for d in donaciones:
                 e_fund = d.get('estado_fundacion')
-                e_donante = d.get('estado_donante')
-
-                if e_fund == 'aceptada':
-                    d['estado_donante'] = 'recibido'
-                elif e_fund == 'rechazada':
-                    d['estado_donante'] = 'rechazado'
-                elif not e_donante:
-                    d['estado_donante'] = 'pendiente'
+                e_don = d.get('estado_donante', 'pendiente')
+                d['estado_donante'] = 'recibido' if e_fund == 'aceptada' else ('rechazado' if e_fund == 'rechazada' else e_don)
             
-            # 4. Filtro de estado (VITAL: para que el buscador funcione)
-            if estado:
-                donaciones = [d for d in donaciones if d['estado_donante'] == estado]
-
-            return donaciones
+            return [d for d in donaciones if not estado or d['estado_donante'] == estado]
         except Exception as e:
-            print(f"❌ ERROR CRÍTICO EN MODELO: {e}")
-            return []
+            print(f"❌ ERROR: {e}"); return []
         finally:
-            if conn: 
-                conn.close()
+            if conn: conn.close()
 
     # =========================================================================
     # MÉTODOS DE NECESIDADES
     # =========================================================================
 
-    def crear_necesidad(self, fundacion_id, categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, fecha_vencimiento=None, tipo_recurso_especial=None, punto_entrega=None):
+    def crear_necesidad(self, fundacion_id, categoria_id, cantidad, urgencia, fecha_limite, ubicacion, telefono, descripcion, contacto_correo, fecha_vencimiento=None, tipo_recurso_especial=None, punto_entrega=None):
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            # Añadimos los nuevos campos al INSERT de SQL
             query = """
                 INSERT INTO necesidades
                 (fundacion_id, categoria_id, cantidad, tipo_urgencia,
-                 fecha_limite, ubicacion, telefono, descripcion, estado, 
-                 fecha_vencimiento, tipo_recurso_especial, punto_entrega)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s, %s, %s)
+                fecha_limite, ubicacion, telefono, descripcion, contacto_correo, estado, 
+                fecha_vencimiento, tipo_recurso_especial, punto_entrega)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s, %s, %s)
             """
             cursor.execute(query, (
                 int(fundacion_id), categoria_id, cantidad, urgencia, 
-                fecha_limite, ubicacion, telefono, descripcion, 
+                fecha_limite, ubicacion, telefono, descripcion, contacto_correo,
                 fecha_vencimiento, tipo_recurso_especial, punto_entrega
             ))
             conn.commit()
@@ -280,38 +266,42 @@ class DonacionModel:
         finally:
             conn.close()
             
-    def obtener_necesidades_activas(self, q=None, cat=None, usuario_id=None):
-        """Obtiene necesidades de la base de datos de manera robusta para el panel."""
+    def obtener_necesidades_activas(self, usuario_id, q=None, cat=None):
         conn = get_connection()
         try:
             cursor = conn.cursor(dictionary=True)
-            
-            # Traemos todo sin importar el enum estricto para forzar el renderizado de prueba
+            # Consulta filtrando explícitamente estados 'completada' o 'eliminado'
             query = """
-                SELECT n.*, 
-                       n.fecha AS fecha_creacion,
-                       f.nombre AS nombre_fundacion, 
-                       u.correo AS fundacion_correo,
-                       f.telefono AS fundacion_telefono,
+                SELECT n.*, f.nombre AS nombre_fundacion, 
+                       n.contacto_correo AS fundacion_correo, 
+                       n.telefono AS fundacion_telefono, 
                        c.nombre AS nombre_categoria,
-                       CASE 
-                           WHEN d.id IS NOT NULL THEN 'ayudado'
-                           ELSE NULL 
-                       END AS interaccion_estado
+                       d.estado_donante AS interaccion_estado
                 FROM necesidades n
                 LEFT JOIN fundaciones f ON n.fundacion_id = f.id
-                LEFT JOIN usuarios u ON f.usuario_id = u.id
                 LEFT JOIN categorias c ON n.categoria_id = c.id
                 LEFT JOIN donaciones d ON n.id = d.necesidad_id AND d.usuario_id = %s
-                WHERE 1=1
+                WHERE (n.estado IS NULL OR n.estado NOT IN ('completada', 'eliminado'))
+                AND n.id NOT IN (
+                    SELECT necesidad_id FROM necesidades_rechazadas WHERE usuario_id = %s
+                )
             """
-            params = [usuario_id]
-                
-            query += " ORDER BY n.id DESC"  
-            cursor.execute(query, tuple(params))
+            params = [usuario_id, usuario_id]
+
+            if q:
+                query += " AND (n.descripcion LIKE %s OR f.nombre LIKE %s)"
+                params.extend([f"%{q}%", f"%{q}%"])
+            
+            if cat:
+                query += " AND c.nombre = %s"
+                params.append(cat)
+
+            query += " ORDER BY n.id DESC"
+            
+            cursor.execute(query, params)
             return cursor.fetchall()
         except Exception as e:
-            print(f"❌ Error real en obtener_necesidades_activas: {e}")
+            print(f"❌ Error al obtener necesidades: {e}")
             return []
         finally:
             conn.close()
@@ -379,19 +369,16 @@ class DonacionModel:
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            query = """
-                INSERT IGNORE INTO necesidades_rechazadas (usuario_id, necesidad_id, fecha_rechazo)
-                VALUES (%s, %s, NOW())
-            """
+            query = "INSERT IGNORE INTO necesidades_rechazadas (usuario_id, necesidad_id, fecha_rechazo) VALUES (%s, %s, NOW())"
             cursor.execute(query, (usuario_id, necesidad_id))
             conn.commit()
             return True
         except Exception as e:
-            print(f"❌ Error al guardar rechazo de necesidad en DB: {e}")
+            print(f"❌ Error al guardar rechazo en DB: {e}")
             return False
         finally:
             conn.close()
-
+            
     # =========================================================================
     # MÉTODOS AUXILIARES
     # =========================================================================
@@ -427,6 +414,22 @@ class DonacionModel:
             return False
         finally:
             conn.close()
+            
+    def obtener_estadisticas_donador(self, usuario_id):
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Ajusta 'estado_donante' según el nombre real de tu columna en la tabla 'donaciones'
+        cursor.execute("""
+            SELECT 
+                COUNT(CASE WHEN estado_donante = 'pendiente' THEN 1 END) as pendientes,
+                COUNT(CASE WHEN estado_donante = 'recibido' THEN 1 END) as recibidas,
+                COUNT(CASE WHEN estado_donante = 'rechazado' THEN 1 END) as rechazadas
+            FROM donaciones 
+            WHERE usuario_id = %s
+        """, (usuario_id,))
+        res = cursor.fetchone()
+        conn.close()
+        return res        
             
     def obtener_estadisticas_fundacion(self, fundacion_id):
         conn = get_connection()

@@ -7,20 +7,66 @@
     <link href="{{ url_for('static', filename='css/home_fundacion.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/home_donador.css') }}" rel="stylesheet">
     <style>
-        .filtro-container {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            border: 1px solid #dee2e6;
-            width: 100%;
-        }
+                /* --- DISEÑO EXCLUSIVO DE TARJETAS FILTRADAS --- */
         .donacion-card {
-            transition: all 0.3s ease;
-            border-left: 5px solid #f5c518 !important;
+            background: #ffffff;
+            border-radius: 16px !important;
+            border: 1px solid #eef2f5 !important; /* Borde gris muy suave clásico del diseño */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
         }
+
         .donacion-card:hover {
-            transform: scale(1.02);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        /* Título de la tarjeta */
+        .donacion-card .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        /* Descripción en gris claro y cursiva sutil */
+        .donacion-card .italic-quote {
+            font-style: italic;
+            color: #8a92a6;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Contenedor de contacto gris con borde punteado redondeado */
+        .donacion-card .contact-box {
+            background-color: #f8f9fa; 
+            border: 1px dashed #dee2e6 !important; 
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+
+        /* Tipografía de los datos de contacto internos */
+        .donacion-card .contact-box span {
+            font-size: 0.88rem;
+            color: #495057;
+        }
+
+        /* Badge de Categoría (Azul plano y limpio) */
+        .badge-categoria {
+            background-color: #e3f2fd !important;
+            color: #0d6efd !important;
+            font-size: 0.72rem !important;
+            font-weight: 600;
+            padding: 5px 12px !important;
+            border-radius: 30px !important;
+            text-transform: capitalize;
+        }
+
+        /* Caja de cantidad */
+        .caja-cantidad {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px 12px;
         }
 
         /* ── Foto de perfil lateral ── */
@@ -454,102 +500,107 @@
                 </div>
 
                 {% if donaciones %}
-                <div class="row g-3">
-                    {% for d in donaciones %}
-                    <div class="col-md-6">
-                        <div class="donacion-card p-3 border rounded shadow-sm bg-white h-100">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="badge bg-info text-dark">{{ d.nombre_categoria }}</span>
-                                {# CORREGIDO: Mapeo correcto apuntando a la variable real de estado_donante #}
-                                <span class="badge
-                                    {% if d.estado_donante == 'recibido'  %}bg-success
-                                    {% elif d.estado_donante == 'rechazado' %}bg-danger
-                                    {% elif d.estado_donante == 'eliminado' %}bg-warning text-dark
-                                    {% else %}bg-warning text-dark{% endif %}">
-                                    {% if d.estado_donante == 'recibido'  %}RECIBIDO
-                                    {% elif d.estado_donante == 'rechazado' %}RECHAZADO
-                                    {% elif d.estado_donante == 'eliminado' %}ELIMINADO
-                                    {% else %}PENDIENTE{% endif %}
-                                </span>
-                            </div>
-                            <div class="mt-2">
-                                <p class="mb-1"><strong>Donante:</strong> {{ d.nombre_donante }}</p>
-                                <p class="mb-1 text-muted" style="font-size:0.9rem;">{{ d.descripcion }}</p>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <span class="fw-bold text-primary">Cant: {{ d.cantidad }}</span>
-                                    <small class="text-muted">
-                                        <i class="far fa-calendar-alt"></i> {{ d.fecha }}
-                                    </small>
-                                </div>
-                            </div>
-
-                            {# ── FOTOS ── #}
-                            {% if d.fotos %}
-                                {% set lista_fotos = d.fotos.split(',') %}
-                                <div class="mt-2">
-                                    <small class="text-muted fw-bold">📸 Fotos adjuntas
-                                        <span style="font-size:0.72rem;background:#f5c518;color:#000;padding:2px 8px;border-radius:20px;font-weight:700;"
-                                              class="ms-1">{{ lista_fotos|length }}</span>
-                                    </small>
-                                    <div class="fotos-donacion">
-                                        {% for foto in lista_fotos %}
-                                            {% set foto_limpia = foto.strip() %}
-                                            {% if foto_limpia %}
-                                            <img src="{{ url_for('static', filename='img/donaciones/' + foto_limpia) }}"
-                                                 alt="Foto donación" onclick="abrirFoto(this.src)">
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
-
-                            <div class="mt-4 pt-3 border-top">
-                                {% if d.estado_donante == 'pendiente' %}
-                                    <div class="d-flex flex-wrap gap-2 justify-content-center">
-                                        <a href="{{ url_for('cambiar_estado_donacion', id=d.id, nuevo_estado='recibido') }}" 
-                                        class="btn btn-sm btn-success px-3 fw-bold">
-                                            <i class="fas fa-check me-1"></i> Aceptar
-                                        </a>
-
-                                        <a href="{{ url_for('cambiar_estado_donacion', id=d.id, nuevo_estado='rechazado') }}" 
-                                        class="btn btn-sm btn-danger px-3 fw-bold">
-                                            <i class="fas fa-times me-1"></i> Rechazar
-                                        </a>
-
-                                        <a href="{{ url_for('eliminar_donacion_ruta', id=d.id) }}" 
-                                        class="btn btn-sm btn-bold"
-                                        style="background-color:#ffb84d; color:#333;"
-                                        onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
-                                            <i class="fas fa-trash-alt me-1"></i> Eliminar
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <div class="text-center py-2">
-                                        {% if d.estado_donante == 'recibido' %}
-                                            <span class="badge bg-success py-2 px-3" style="font-size: 0.9rem;">
-                                                <i class="fas fa-check-circle me-1"></i> RECIBIDO
-                                            </span>
-                                        {% elif d.estado_donante == 'rechazado' %}
-                                            <span class="badge bg-danger py-2 px-3" style="font-size: 0.9rem;">
-                                                <i class="fas fa-times-circle me-1"></i> RECHAZADO
-                                            </span>
-                                        {% elif d.estado_donante == 'eliminado' %}
-                                            <span class="badge bg-warning text-dark py-2 px-3" style="font-size: 0.9rem;">
-                                                <i class="fas fa-trash me-1"></i> ELIMINADO (En Reporte)
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </div> 
-                        </div> 
-                    </div> 
-                    {% endfor %}
-                </div> 
+<div class="row g-4">
+    {% for d in donaciones %}
+    <div class="col-12 col-md-6 col-lg-6">
+        <div class="card donacion-card h-100">
+            
+            <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                <span class="badge badge-categoria">
+                    {{ d.nombre_categoria }}
+                </span>
+                
+                {% if d.estado_donante == 'recibido' %}
+                    <span class="badge bg-success text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECIBIDO</span>
+                {% elif d.estado_donante == 'rechazado' %}
+                    <span class="badge bg-danger text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECHAZADO</span>
+                {% elif d.estado_donante == 'eliminado' %}
+                    <span class="badge bg-secondary text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">ELIMINADO</span>
                 {% else %}
-                    <div class="text-center py-5 bg-white rounded shadow-sm">
-                        <p class="text-muted">No se encontraron donaciones con estos filtros.</p>
+                    <span class="badge bg-warning text-dark px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">PENDIENTE</span>
+                {% endif %}
+            </div>
+
+            <div class="card-body px-4 py-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
+    
+    {# Si la donación tiene foto en la BD, muestra tu botón nativo con onclick; si no, dice Sin foto #}
+    {% if d.fotos %}
+    <button type="button" 
+            class="btn btn-sm btn-link text-primary fw-bold p-0 text-decoration-none"
+            data-ruta="{{ url_for('static', filename='img/donaciones/' + d.fotos) }}"
+            onclick="abrirFoto(this.getAttribute('data-ruta'))">
+        🖼️ Ver Foto
+    </button>
+{% else %}
+    <small class="text-muted italic" style="font-size: 0.75rem;">🚫 Sin foto</small>
+{% endif %}
+</div>
+
+                <p class="card-text italic-quote mb-3">
+                    "{{ d.descripcion }}"
+                </p>
+
+                <div class="contact-box mb-3">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Donante:</span>
+                            <span class="fw-semibold">{{ d.nombre_donante }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Teléfono:</span>
+                            <span>{{ d.telefono if d.telefono else '3509996462' }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Correo:</span>
+                            <span>{{ d.correo if d.correo else 'cami33@gmail.com' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="caja-cantidad d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cantidad</span>
+                    <span class="fs-5 fw-bold text-primary">{{ d.cantidad }}</span>
+                </div>
+            </div>
+
+            <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
+                {% if d.estado_donante == 'pendiente' %}
+                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100">
+                        <input type="hidden" name="donacion_id" value="{{ d.id }}">
+                        <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">
+                            Aceptar
+                        </button>
+                        <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">
+                            Rechazar
+                        </button>
+                        <a href="{{ url_for('eliminar_donacion_ruta', id=d.id) }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3" style="border-radius: 10px;" onclick="return confirm('¿Deseas eliminar este registro?');">
+                            <i class="bi bi-trash3-fill"></i>
+                        </a>
+                    </form>
+                {% else %}
+                    <div class="text-center py-2">
+                        {% if d.estado_donante == 'recibido' %}
+                            <span class="text-success small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Gestionado como recibido</span>
+                        {% elif d.estado_donante == 'rechazado' %}
+                            <span class="text-danger small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Donación rechazada</span>
+                        {% elif d.estado_donante == 'eliminado' %}
+                            <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Archivado en reportes</span>
+                        {% endif %}
                     </div>
                 {% endif %}
+            </div>
+
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 bg-white rounded-4 border" style="border-radius: 16px;">
+    <p class="text-muted mb-0 fw-medium">No se encontraron donaciones con estos filtros.</p>
+</div>
+{% endif %}
             </div>
         </div> 
     </div> 
@@ -601,6 +652,7 @@
 </div>
 
 
+{% block scripts %}
 <script>
     // Control de envío del reporte con spinner
     function manejarEnvio(e) {
@@ -612,21 +664,22 @@
         return true;
     }
         
-
     function confirmarEliminar(idSolicitud) {
-    if (confirm("¿Estás seguro de que deseas eliminar esta solicitud? No se mostrará en el panel, pero quedará guardada en el historial del sistema.")) {
-        window.location.href = "/eliminar_solicitud/" + idSolicitud;
+        if (confirm("¿Estás seguro de que deseas eliminar esta solicitud? No se mostrará en el panel, pero quedará guardada en el historial del sistema.")) {
+            window.location.href = "/eliminar_solicitud/" + idSolicitud;
+        }
     }
-}
 
     // Funciones para visualizar las fotos adjuntas en grande
     function abrirFoto(src) {
         document.getElementById('modalFotoImg').src = src;
         document.getElementById('modalFotoOverlay').classList.add('activo');
     }
+    
     function cerrarFoto() {
         document.getElementById('modalFotoOverlay').classList.remove('activo');
     }
+    
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarFoto(); });
 
     // Carga de componentes del DOM
@@ -644,29 +697,30 @@
         }
 
         // 2. INYECTOR SEGURO PARA EL POPUP DE LA NAVAR (Esquina superior derecha)
-        // Buscamos el menú desplegable (dropdown) de Bootstrap
         const menúPopup = document.querySelector('.dropdown-menu');
         
         if (menúPopup) {
-            // Buscamos cualquier enlace o botón dentro del popup (como Administrar Cuenta, Perfil o un separador <hr>)
-            // para usarlo como punto de referencia de abajo.
             const elementoReferencia = menúPopup.querySelector('a, button, hr, .dropdown-divider');
             
             if (elementoReferencia && !document.getElementById('encargado-pop-dinamico')) {
-                // Creamos el párrafo del encargado con el estilo exacto
                 const parrafoEncargado = document.createElement('p');
                 parrafoEncargado.id = 'encargado-pop-dinamico';
                 parrafoEncargado.className = 'text-muted mb-2 small';
-                parrafoEncargado.style.paddingLeft = '15px'; // Margen para que alinee con los textos del popup
+                parrafoEncargado.style.paddingLeft = '15px'; 
                 parrafoEncargado.style.fontSize = '0.88rem';
                 
-                // Le inyectamos el icono de usuario y el encargado de la sesión
                 parrafoEncargado.innerHTML = `<i class="fas fa-user-tie text-secondary me-2"></i><strong>Encargado:</strong> {{ session.get('usuario_encargado', fundacion.usuario_encargado) }}`;
                 
-                // Lo insertamos limpiamente justo antes de los botones/líneas divisoras del popup
                 elementoReferencia.parentNode.insertBefore(parrafoEncargado, elementoReferencia);
             }
         }
+
+        // 3. INICIALIZADOR POR SI ACASO PARA LOS POPOVERS DE BOOTSTRAP
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl)
+        });
     });
 </script>
+{% endblock %}
 {% endblock %}

@@ -8,6 +8,23 @@
         <form action="{{ url_for('registro') }}" method="POST" id="form-registro">
             <h2>Registro de Usuario</h2>
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm my-3" role="alert" style="border-radius: 10px; padding: 12px 15px; font-size: 0.9rem; background-color: {% if category == 'danger' %}#f8d7da{% else %}#d4edda{% endif %}; color: {% if category == 'danger' %}#721c24{% else %}#155724{% endif %}; border-left: 5px solid {% if category == 'danger' %}#dc3545{% else %}#28a745{% endif %} !important;">
+                            <div class="d-flex align-items-center gap-2">
+                                {% if category == 'danger' %}
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill"></i>
+                                {% endif %}
+                                <span>{{ message }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <label id="label-nombre">Nombre de la persona responsable:</label>
             <input type="text" name="nombre_fundador" id="nombre_fundador"
                    placeholder="Nombre de la persona responsable" required>
@@ -53,7 +70,6 @@
                 <input type="text" name="organizacion" id="organizacion"
                        placeholder="Nombre de la fundación">
 
-                {# ── NUEVA: Descripción / Misión de la fundación ── #}
                 <label>Descripción / Misión de la Fundación:</label>
                 <textarea name="descripcion_fundacion" id="descripcion_fundacion"
                           rows="3"
@@ -71,6 +87,18 @@
 
 {% block scripts %}
 <script>
+    // --- NUEVO: Script para que la alerta desaparezca rápido ---
+    document.addEventListener("DOMContentLoaded", function() {
+        const alerta = document.querySelector(".alert");
+        if (alerta) {
+            setTimeout(() => {
+                alerta.style.transition = "opacity 0.5s ease";
+                alerta.style.opacity = "0";
+                setTimeout(() => alerta.remove(), 500);
+            }, 3000); // 3000 milisegundos = 3 segundos en pantalla
+        }
+    });
+
     function cambiarFormulario() {
         let rol = document.querySelector("select[name='rol']").value;
         document.getElementById("campos-donante").style.display   = (rol === "2") ? "block" : "none";
@@ -96,7 +124,6 @@
     }
     window.onload = cambiarFormulario;
 
-    // ── Validación correo duplicado en tiempo real ──
     document.getElementById('correo').addEventListener('blur', function() {
         const correo  = this.value.trim();
         const msg     = document.getElementById('msg-correo');

@@ -39,8 +39,9 @@ class UsuarioController:
                 else:
                     return redirect(url_for("home_donador"))
             else:
+                # CAMBIO AQUÍ: Se usa redirect para limpiar el flujo POST y evitar la alerta del navegador
                 flash("Correo o contraseña incorrectos", "danger")
-                return render_template("login.html")
+                return redirect(url_for("login"))
         return render_template("login.html")
 
     def editar_perfil_view(self):
@@ -175,12 +176,13 @@ class UsuarioController:
                 conn.close()
 
     def registro_view(self):
-        from flask import request, redirect, url_for, render_template
+        from flask import request, redirect, url_for, render_template, flash
         if request.method == "POST":
             print(f"DEBUG: Datos recibidos: {request.form}")
             rol_id = request.form.get("rol")
             if not rol_id:
-                return render_template("registro.html", error="Debe seleccionar un rol")
+                flash("Debe seleccionar un rol", "danger")
+                return redirect(url_for("registro"))
 
             rol_id = int(rol_id)
             if rol_id == 3:
@@ -198,9 +200,12 @@ class UsuarioController:
 
             exito = self.registrar(nombre, correo, password, rol_id, nit, organizacion, descripcion_fundacion)
             if exito:
+                flash("🎉 ¡Registro exitoso! Ya puedes iniciar sesión.", "success")
                 return redirect(url_for("login"))
             else:
-                return render_template("registro.html", error="Error al registrar. El correo puede estar en uso.")
+                # CAMBIO AQUÍ: Cambiado a redirect para limpiar el formulario si el correo ya existe
+                flash("Error al registrar. El correo puede estar en uso.", "danger")
+                return redirect(url_for("registro"))
         return render_template("registro.html")
 
     def publicar_donacion_view(self, request, session, necesidad_id=None):
@@ -212,7 +217,7 @@ class UsuarioController:
         if "usuario_id" not in session:
             return redirect(url_for("login"))
 
-        modelo               = DonacionModel()
+        modelo = DonacionModel()
         necesidad_prellenada = None
         todas_las_categories = modelo.obtener_categorias()
 
@@ -222,27 +227,23 @@ class UsuarioController:
         fundaciones_activas = self.modelo.obtener_fundaciones_activas_con_descripcion()
 
         if request.method == "POST":
-            donador_id   = session["usuario_id"]
+            donador_id = session["usuario_id"]
             
-            # ══ NUEVO: FLUJO AUTOMÁTICO DESDE EL MODAL DEL CARRUSEL ══
+            # ══ FLUJO AUTOMÁTICO DESDE EL MODAL ══
             if necesidad_id and necesidad_prellenada:
-                # Extraemos los datos directamente de la necesidad de la BD para clonarlos en la donación
-                fundacion_id = necesidad_prellenada['fundacion_id']
-                categoria_id = necesidad_prellenada['categoria_id']
-                cantidad     = necesidad_prellenada['cantidad']
-                descripcion  = necesidad_prellenada['descripcion']
-                fotos_str    = None  # No hay carga de archivos físicos desde el modal rápido
-                
                 exito = modelo.registrar_donacion_con_necesidad(
-                    donador_id, fundacion_id, categoria_id,
-                    cantidad, descripcion, necesidad_id, fotos_str
+                    donador_id, necesidad_prellenada['fundacion_id'], necesidad_prellenada['categoria_id'],
+                    necesidad_prellenada['cantidad'], necesidad_prellenada['descripcion'], necesidad_id, None
                 )
                 
                 if exito:
-                    flash("🎉 ¡Gracias! Tu ayuda ha sido registrada. La fundación la revisará en su historial.", "success")
+                    # CORRECCIÓN: Se actualiza el estado a completada para que desaparezca del carrusel
+                    modelo.cambiar_estado_necesidad(necesidad_id, 'completada')
+                    
+                    flash("🎉 ¡Gracias! Tu ayuda ha sido registrada.", "success")
                     return redirect(url_for("home_donador"))
                 else:
-                    flash("❌ Hubo un problema al procesar la donación automática.", "danger")
+                    flash("❌ Hubo un problema al procesar la donación.", "danger")
                     return redirect(url_for("home_donador"))
 
             # ══ FLUJO TRADICIONAL DESDE EL FORMULARIO MANUAL ══
@@ -433,17 +434,20 @@ class UsuarioController:
             fundacion_id = fundacion_datos['id'] if fundacion_datos else usuario_id
             categoria    = request.form.get("categoria")
             text_cantidad = request.form.get("cantidad")
-            # Convertir de forma segura para evitar fallos si el número viene vacío
             cantidad     = int(text_cantidad) if text_cantidad and text_cantidad.isdigit() else 0
             urgencia     = request.form.get("urgencia")
             fecha_limite = request.form.get("fecha_limite")
             ubicacion    = request.form.get("ubicacion")
             telefono     = request.form.get("telefono")
             descripcion  = request.form.get("descripcion")
+            
+            # Obtenemos el correo desde los datos de la fundación (perfil)
+            correo_contacto = fundacion_datos.get('correo') if fundacion_datos else ''
 
+            # Enviamos el correo_contacto al modelo
             exito = modelo_donacion.crear_necesidad(
                 fundacion_id, categoria, cantidad, urgencia,
-                fecha_limite, ubicacion, telefono, descripcion
+                fecha_limite, ubicacion, telefono, descripcion, correo_contacto
             )
 
             if exito:
@@ -454,7 +458,8 @@ class UsuarioController:
                 return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
 
         return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
-
+    
+    
     def editar_solicitud_view(self, id):
         from flask import session, redirect, url_for, request, flash, render_template
         from models.donacion_model import DonacionModel
@@ -534,10 +539,27 @@ class UsuarioController:
         from models.donacion_model import DonacionModel
         import requests
         import json
-        from app import serializar_datos
+        from app import serializar_datos, mysql # Asegúrate de importar mysql aquí
 
         if "usuario_id" not in session:
             return redirect(url_for("login"))
+
+        usuario_id = session.get("usuario_id")
+
+        # --- INICIO DE LÓGICA DE CONTADORES ---
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT estado_donante, COUNT(*) FROM donaciones WHERE usuario_id = %s GROUP BY estado_donante", (usuario_id,))
+        resultados = cur.fetchall()
+        cur.close()
+
+        # Convertimos los resultados en un diccionario para fácil acceso
+        stats = {row[0]: row[1] for row in resultados}
+        contadores = {
+            'pendientes': stats.get('pendiente', 0),
+            'recibidas': stats.get('recibido', 0),
+            'rechazadas': stats.get('rechazado', 0)
+        }
+        # --- FIN DE LÓGICA DE CONTADORES ---
 
         datos_donador = {
             "nombre":      session.get("nombre"),
@@ -554,25 +576,25 @@ class UsuarioController:
         accion         = request.args.get('accion')
         correo_reporte = request.args.get('correo_reporte')
 
-        # CORRECCIÓN DEFINITIVA: Pasamos el usuario_id de la sesión para que MySQL pueda filtrar correctamente
-        necesidades = modelo_donacion.obtener_necesidades_activas(q=q, cat=cat, usuario_id=session["usuario_id"])
-        # ─── AGREGA ESTA LÍNEA DE DIAGNÓSTICO EN TU PYTHON ───
-        print(f"🔍 [DIAGNÓSTICO] Cantidad de necesidades recuperadas: {len(necesidades)} | Contenido: {necesidades}")
+        # 1. Obtención de necesidades
+        necesidades = modelo_donacion.obtener_necesidades_activas(q=q, cat=cat, usuario_id=usuario_id) or []
         
+        # 2. Obtención del historial
         mis_donaciones = modelo_donacion.obtener_donaciones_por_usuario_filtrado(
-            session["usuario_id"], 
+            usuario_id, 
             q=q, 
             categoria=cat, 
             estado=est, 
             fundacion=fundacion_busq
-        )
+        ) or []
 
+        # 3. Lógica de reporte a Java
         if accion == 'reporte':
             if not correo_reporte:
                 flash("Por favor, ingresa un correo para el reporte", "warning")
             else:
                 try:
-                    url_java      = "http://localhost:8080/api/email/enviar-reporte-donador"
+                    url_java = "http://localhost:8080/api/email/enviar-reporte-donador"
                     desglose_dict = {}
                     
                     for d in mis_donaciones:
@@ -600,16 +622,16 @@ class UsuarioController:
                     
                     payload = {
                         "destinatario":       correo_reporte,
-                        "nombreDonador":       datos_donador["nombre"],
+                        "nombreDonador":      datos_donador["nombre"],
                         "telefono":           datos_donador.get("telefono", "N/A"),
-                        "amountDonaciones":  total_donaciones,
+                        "amountDonaciones":   total_donaciones,
                         "donaciones":         lista_desglosada,
-                        "categoriaFiltrada":   cat,
+                        "categoriaFiltrada":  cat,
                         "estadoFiltrado":     est
                     }
                     
                     datos_limpios = json.loads(json.dumps(payload, default=serializar_datos))
-                    response      = requests.post(url_java, json=datos_limpios, timeout=10)
+                    response = requests.post(url_java, json=datos_limpios, timeout=10)
                     
                     if response.status_code == 200:
                         flash(f"✅ ¡Reporte enviado con éxito a {correo_reporte}!", "success")
@@ -619,12 +641,12 @@ class UsuarioController:
                     print(f"❌ Error de conexión con Java: {e}")
                     flash("No se pudo conectar con el servicio de correos (Java)", "danger")
 
-        # Se renderiza pasando 'necesidades=necesidades' correctamente
         return render_template(
             "home_donador.html",
             donador=datos_donador,
             necesidades=necesidades,
-            donaciones=mis_donaciones
+            donaciones=mis_donaciones,
+            contadores=contadores # <-- AQUÍ SE ENVÍAN LOS DATOS
         )
         
     def admin_panel_view(self):

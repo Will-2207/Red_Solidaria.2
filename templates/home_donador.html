@@ -168,127 +168,105 @@
 
         <div class="row mb-4">
 
-            {# ══ PANEL LATERAL ══ #}
-            <div class="col-lg-3">
-                <div class="perfil perfil-donante-card mb-4 shadow-sm">
-
-                    {# ── Foto de perfil ── #}
-                    <div class="text-center mb-3 mt-3">
-                        {% if donador.foto_perfil and donador.foto_perfil != '' %}
-                            <img src="{{ url_for('static', filename='img/' + donador.foto_perfil) }}"
-                                 class="foto-perfil-lateral" alt="Foto donador">
-                        {% else %}
-                            <div class="avatar-inicial-lateral">
-                                {{ donador.nombre[0]|upper if donador.nombre else '?' }}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <h3 class="fw-bold text-center mb-1">{{ donador.nombre }}</h3>
-                    <p class="text-muted text-center small mb-2">Donador de Corazón ❤️</p>
-
-                    {# ── Badge estado corregido ── #}
-                    {% if donador.estado == 'aprobado' or donador.estado == 'Activo' %}
-                        <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
-                    {% elif donador.estado == 'pendiente' %}
-                        <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
-                    {% elif donador.estado == 'rechazado' %}
-                        <span class="badge bg-danger d-block text-center mb-3">❌ Donante Rechazado</span>
-                    {% else %}
-                        <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
-                    {% endif %}
+           {# ══ PANEL LATERAL ══ #}
+<div class="col-lg-3">
+    <div class="perfil perfil-donante-card mb-4 shadow-sm">
+        {# ── Foto de perfil ── #}
+        <div class="text-center mb-3 mt-3">
+            {% if donador.foto_perfil and donador.foto_perfil != '' %}
+                <img src="{{ url_for('static', filename='img/' + donador.foto_perfil) }}" class="foto-perfil-lateral" alt="Foto donador">
+            {% else %}
+                <div class="avatar-inicial-lateral">
+                    {{ donador.nombre[0]|upper if donador.nombre else '?' }}
                 </div>
+            {% endif %}
+        </div>
 
-                {# ══ STATS DE DONACIONES ══ #}
-                <div class="stats-lateral">
-                    <div class="stats-lateral-header">📊 Mis Donaciones</div>
+        <h3 class="fw-bold text-center mb-1">{{ donador.nombre }}</h3>
+        <p class="text-muted text-center small mb-2">Donador de Corazón ❤️</p>
 
-                    {# Conteos por estado_donante #}
-                    {% if donaciones %}
-                        {% set pend  = donaciones | selectattr('estado_donante', 'equalto', 'pendiente') | list | length %}
-                        {% set recib = donaciones | selectattr('estado_donante', 'equalto', 'recibido')  | list | length %}
-                        {% set rech  = donaciones | selectattr('estado_donante', 'equalto', 'rechazado') | list | length %}
-                    {% else %}
-                        {% set pend = 0 %}{% set recib = 0 %}{% set rech = 0 %}
-                    {% endif %}
+        {# ── Badge estado corregido ── #}
+        {% if donador.estado in ['aprobado', 'Activo'] %}
+            <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
+        {% elif donador.estado == 'pendiente' %}
+            <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
+        {% elif donador.estado == 'rechazado' %}
+            <span class="badge bg-danger d-block text-center mb-3">❌ Donante Rechazado</span>
+        {% else %}
+            <span class="badge bg-success d-block text-center mb-3">✅ Donante Activo</span>
+        {% endif %}
+    </div>
 
-                    <div class="stats-item">
-                        <span class="label">⏳ Pendientes</span>
-                        <span class="stats-num num-pendiente">{{ pend }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">✅ Recibidas</span>
-                        <span class="stats-num num-recibido">{{ recib }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">❌ Rechazadas</span>
-                        <span class="stats-num num-rechazado">{{ rech }}</span>
-                    </div>
+    {# ══ STATS DE DONACIONES ══ #}
+    <div class="stats-lateral">
+        <div class="stats-lateral-header">📊 Mis Donaciones</div>
+        
+        <div class="stats-item">
+            <span class="label">⏳ Pendientes</span>
+            <span class="stats-num num-pendiente">{{ contadores.pendientes if contadores else 0 }}</span>
+        </div>
+        <div class="stats-item">
+            <span class="label">✅ Recibidas</span>
+            <span class="stats-num num-recibido">{{ contadores.recibidas if contadores else 0 }}</span>
+        </div>
+        <div class="stats-item">
+            <span class="label">❌ Rechazadas</span>
+            <span class="stats-num num-rechazado">{{ contadores.rechazadas if contadores else 0 }}</span>
+        </div>
 
-                    <div class="stats-lateral-header"
-                         style="background:linear-gradient(135deg,#2575fc,#43c98a);">
-                        📦 Por Categoría
-                    </div>
+        <div class="stats-lateral-header" style="background:linear-gradient(135deg,#2575fc,#43c98a);">
+            📦 Por Categoría
+        </div>
 
-                    {# Conteos por categoría #}
-                    {% if donaciones %}
-                        {% set alim  = donaciones | selectattr('categoria_nombre', 'equalto', 'Alimentos') | list | length %}
-                        {% set ropa  = donaciones | selectattr('categoria_nombre', 'equalto', 'Ropa')      | list | length %}
-                        {% set otros = donaciones | selectattr('categoria_nombre', 'equalto', 'Otros')     | list | length %}
-                    {% else %}
-                        {% set alim = 0 %}{% set ropa = 0 %}{% set otros = 0 %}
-                    {% endif %}
+        {% if donaciones %}
+            {% set alim  = donaciones | selectattr('categoria_nombre', 'equalto', 'Alimentos') | list | length %}
+            {% set ropa  = donaciones | selectattr('categoria_nombre', 'equalto', 'Ropa') | list | length %}
+            {% set otros = donaciones | selectattr('categoria_nombre', 'equalto', 'Otros') | list | length %}
+        {% else %}
+            {% set alim = 0 %}{% set ropa = 0 %}{% set otros = 0 %}
+        {% endif %}
 
-                    <div class="stats-item">
-                        <span class="label">🥫 Alimentos</span>
-                        <span class="stats-num num-alimentos">{{ alim }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">👕 Ropa</span>
-                        <span class="stats-num num-ropa">{{ ropa }}</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">📦 Otros</span>
-                        <span class="stats-num num-otros">{{ otros }}</span>
-                    </div>
+        <div class="stats-item">
+            <span class="label">🥫 Alimentos</span>
+            <span class="stats-num num-alimentos">{{ alim }}</span>
+        </div>
+        <div class="stats-item">
+            <span class="label">👕 Ropa</span>
+            <span class="stats-num num-ropa">{{ ropa }}</span>
+        </div>
+        <div class="stats-item">
+            <span class="label">📦 Otros</span>
+            <span class="stats-num num-otros">{{ otros }}</span>
+        </div>
 
-                    {# ── Transacciones (próximamente) ── #}
-                    <div class="stats-lateral-header"
-                         style="background:linear-gradient(135deg,#f7971e,#ffd200);">
-                        💳 Transacciones
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">💰 Económicas</span>
-                        <span class="stats-num num-transaccion">0</span>
-                    </div>
-                    <div class="stats-item">
-                        <span class="label">💳 Pagos</span>
-                        <span class="stats-num num-transaccion">0</span>
-                    </div>
+        {# ── Transacciones ── #}
+        <div class="stats-lateral-header" style="background:linear-gradient(135deg,#f7971e,#ffd200);">
+            💳 Transacciones
+        </div>
+        <div class="stats-item"><span class="label">💰 Económicas</span><span class="stats-num">0</span></div>
+        <div class="stats-item"><span class="label">💳 Pagos</span><span class="stats-num">0</span></div>
 
-                    <div class="stats-item" style="background:#f8f9fa;">
-                        <span class="label fw-bold">🔢 Total donaciones</span>
-                        <span class="stats-num num-total">{{ donaciones|length if donaciones else 0 }}</span>
-                    </div>
-                </div>
-            </div>
+        <div class="stats-item" style="background:#f8f9fa;">
+            <span class="label fw-bold">🔢 Total donaciones</span>
+            <span class="stats-num num-total">{{ donaciones|length if donaciones else 0 }}</span>
+        </div>
+    </div>
+</div>
 
-           {# ── CONTENIDO PRINCIPAL DERECHO ── #}
-        <div class="col-lg-9">
+{# ══ CONTENIDO PRINCIPAL DERECHO ══ #}
+<div class="col-lg-9">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" style="position: relative;">
+        <h3 class="panel-title m-0 d-flex align-items-center flex-wrap gap-2">
+            <i class="fas fa-hands-helping text-info fa-2x me-2"></i> 
+            Solicitudes de Ayuda
+            <span id="alerta-nueva-solicitud" class="badge bg-primary ms-2 alerta-notif">
+                🔔 ¡Tienes una nueva solicitud de ayuda!
+            </span>
+        </h3>
+        <span class="badge bg-warning text-dark">Peticiones actuales</span>
+    </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" style="position: relative;">
-                <h3 class="panel-title m-0 d-flex align-items-center flex-wrap gap-2">
-                    <i class="fas fa-hands-helping text-info fa-2x me-2"></i> 
-                    Solicitudes de Ayuda
-                    <span id="alerta-nueva-solicitud" class="badge bg-primary ms-2 alerta-notif">
-                        🔔 ¡Tienes una nueva solicitud de ayuda!
-                    </span>
-                </h3>
-                <span class="badge bg-warning text-dark">Peticiones actuales</span>
-            </div>
-
-           
- {# ── CARRUSEL DESLIZABLE ESTILO NETFLIX ── #}
+                {# ── CARRUSEL DESLIZABLE ESTILO NETFLIX ── #}
             <div class="netflix-container mb-5">
                 <div class="netflix-slider">
                     {% for n in necesidades %}
@@ -302,31 +280,32 @@
                                 </div>
                                 <h5 class="fw-bold text-dark mb-1">🏢 {{ n.nombre_fundacion }}</h5>
                                 
-                                {# DATOS DE CONTACTO CORREGIDOS CON LOS ALIAS EXACTOS DE TU PYTHON #}
+                                {# Sección de contacto: Correo y Teléfono #}
                                 <div class="contacto-fundacion-tarjeta mb-2" style="font-size: 0.80rem; line-height: 1.3;">
                                     <div class="text-muted text-truncate" title="{{ n.fundacion_correo }}">
-                                        <i class="fas fa-envelope text-secondary me-1" style="width: 14px;"></i> {{ n.fundacion_correo if n.fundacion_correo else 'Sin correo' }}
+                                        <i class="fas fa-envelope text-secondary me-1" style="width: 14px;"></i> 
+                                        {{ n.fundacion_correo if n.fundacion_correo else 'Sin correo' }}
                                     </div>
                                     <div class="text-muted text-truncate">
-                                        <i class="fas fa-phone text-secondary me-1" style="width: 14px;"></i> {{ n.fundacion_telefono if n.fundacion_telefono else 'Sin teléfono' }}
+                                        <i class="fas fa-phone text-secondary me-1" style="width: 14px;"></i> 
+                                        {{ n.fundacion_telefono if n.fundacion_telefono else 'Sin teléfono' }}
                                     </div>
-                                </div>
+                                </div> 
                                 
                                 <div class="mb-3">
                                     <p class="text-primary small fw-bold mb-1">📦 Cantidad solicitada: {{ n.cantidad }}</p>
                                     <span class="badge bg-info text-dark" style="font-size: 0.85em;">🏷️ Categoría: {{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
                                 </div>
 
-                               <p class="card-text text-muted small" style="line-height:1.5;">
-                                        {{ n.descripcion[:150] if n.descripcion else 'Sin descripción disponible' }}...
-                                    </p>
+                                <p class="card-text text-muted small" style="line-height:1.5;">
+                                    {{ n.descripcion[:150] if n.descripcion else 'Sin descripción disponible' }}...
+                                </p>
                             </div>
                             
-                            {# ── CARD FOOTER CORREGIDO CON VALIDACIÓN DE ESTADO ── #}
                             <div class="card-footer bg-transparent border-0 p-4 pt-0">
-                                {% if n.interaccion_estado == 'ayudado' %}
+                                {% if n.interaccion_estado == 'ayudado' or n.interaccion_estado == 'recibido' %}
                                     <div class="w-100 text-center py-2 bg-light rounded-3 text-success fw-bold" style="font-size: 0.9rem;">
-                                        🎉 Ya registraste ayuda para esta solicitud
+                                        🎉 Ayuda gestionada a la fundación
                                     </div>
                                 {% elif n.interaccion_estado == 'rechazado' %}
                                     <div class="w-100 text-center py-2 bg-light rounded-3 text-danger fw-bold" style="font-size: 0.9rem;">
@@ -341,11 +320,11 @@
                                                     data-bs-target="#modalDetalleAyuda"
                                                     data-url="{{ url_for('donar', necesidad_id=n.id) }}"
                                                     onclick="mostrarDetalleAyuda(
-                                                        '{{ n.nombre_fundacion|e }}',
-                                                        '{{ n.descripcion|e }}',
-                                                        '',
-                                                        '{{ n.fecha_creacion|e }}',
-                                                        'Fundación Verificada',
+                                                        '{{ n.nombre_fundacion|e }}', 
+                                                        '{{ n.descripcion|e }}', 
+                                                        '', 
+                                                        '{{ n.fecha_creacion|e }}', 
+                                                        'Fundación Verificada', 
                                                         this.getAttribute('data-url')
                                                     )">
                                                 🤝 AYUDAR
@@ -353,8 +332,7 @@
                                         </div>
                                         <div class="col-6">
                                             <form action="{{ url_for('rechazar_necesidad', necesidad_id=n.id) }}" method="POST" onsubmit="return confirm('¿Deseas ocultar y rechazar esta solicitud definitivamente?');">
-                                                <button type="submit" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm"
-                                                        style="border-radius:12px; font-size: 0.85rem;">
+                                                <button type="submit" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm" style="border-radius:12px; font-size: 0.85rem;">
                                                     ❌ RECHAZAR
                                                 </button>
                                             </form>
@@ -364,13 +342,13 @@
                             </div>
                         </div>
                     </div>
-                    {% else %}
-                        <div class="w-100 text-center py-4">
-                            <p class="text-muted">No hay solicitudes de ayuda publicadas hoy.</p>
-                        </div>
-                    {% endfor %}
-                </div>
+        {% else %}
+            <div class="w-100 text-center py-4">
+                <p class="text-muted">No hay solicitudes de ayuda publicadas hoy.</p>
             </div>
+        {% endfor %}
+    </div>
+</div>
 
 
             {# ── RASTREAR Y REPORTAR DONACIONES (TU FORMULARIO ORIGINAL INTACTO) ── #}
@@ -493,7 +471,7 @@
                     <p class="mb-0"><strong>🛡️ Solicitante:</strong> <span id="modalSolicitante"></span></p>
                 </div>
                 
-                <form id="modalDonarForm" method="POST">
+                <form id="modalDonarForm" method="POST" action="">
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm" style="border-radius: 12px;">
                             🤝 Confirmar y Registrar Donación
@@ -538,32 +516,28 @@
             }
         });
 
-        // 3. Función corregida para el modal (Soporta enlaces y formularios POST)
         window.mostrarDetalleAyuda = function(nombre, descripcion, urgencia, fecha, solicitante, urlDonar) {
-            if (document.getElementById('modalFundacion')) {
-                document.getElementById('modalFundacion').textContent = nombre;
-            }
-            if (document.getElementById('modalDescripcion')) {
-                document.getElementById('modalDescripcion').textContent = descripcion;
-            }
-            if (document.getElementById('modalFecha')) {
-                document.getElementById('modalFecha').textContent = fecha;
-            }
-            if (document.getElementById('modalSolicitante')) {
-                document.getElementById('modalSolicitante').textContent = solicitante;
-            }
-            
-            // Si el botón de confirmación es un enlace (<a>)
-            let btnDonar = document.getElementById('modalDonarBtn');
-            if (btnDonar) {
-                btnDonar.setAttribute('href', urlDonar);
-            }
+        // Rellenar textos con validación de existencia de elementos
+        const ids = {
+            'modalFundacion': nombre,
+            'modalDescripcion': descripcion,
+            'modalFecha': fecha,
+            'modalSolicitante': solicitante
+        };
 
-            // Si el botón de confirmación está dentro de un formulario (<form id="modalDonarForm">)
-            let formDonar = document.getElementById('modalDonarForm');
-            if (formDonar) {
-                formDonar.setAttribute('action', urlDonar);
-            }
+        for (let id in ids) {
+            let el = document.getElementById(id);
+            if (el) el.textContent = ids[id];
         }
+        
+        // CONEXIÓN: Inyectamos la URL al action del formulario
+        // Usamos tu ID 'modalDonarForm' que sí existe en tu HTML
+        const formDonar = document.getElementById('modalDonarForm');
+        if (formDonar) {
+            formDonar.setAttribute('action', urlDonar);
+        } else {
+            console.error("Error: No se encontró el formulario modalDonarForm");
+        }
+    }
     </script>
 {% endblock %}

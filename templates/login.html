@@ -4,12 +4,74 @@
 
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <style>
+        /* Estilos limpios para la alerta */
+        .custom-alert {
+            border-radius: 10px; 
+            padding: 12px 45px 12px 15px; 
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        /* Variación de error */
+        .custom-alert-danger {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+            border-left: 5px solid #dc3545 !important;
+        }
+
+        /* Variación de éxito */
+        .custom-alert-success {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+            border-left: 5px solid #28a745 !important;
+        }
+
+        /* Posicionamiento del botón de cerrar original de Bootstrap */
+        .custom-alert .btn-close {
+            position: absolute; 
+            top: 50%; 
+            right: 15px; 
+            transform: translateY(-50%);
+            padding: 0;
+            margin: 0;
+            width: 0.75rem;
+            height: 0.75rem;
+        }
+
+        /* ESTO BORRA EL ÓVALO / FRANJA AZUL POR COMPLETO */
+        .custom-alert .btn-close:focus,
+        .custom-alert .btn-close:active,
+        .custom-alert .btn-close:focus-visible {
+            box-shadow: none !important;
+            outline: none !important;
+            background-color: transparent !important;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
 <div class="main">
     <div class="formulario shadow-lg">
         <h1>Inicio de Sesión</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-dismissible fade show border-0 shadow-sm my-3 custom-alert {% if category == 'danger' %}custom-alert-danger{% else %}custom-alert-success{% endif %}" role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            {% if category == 'danger' %}
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            {% else %}
+                                <i class="bi bi-check-circle-fill"></i>
+                            {% endif %}
+                            <span>{{ message }}</span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         
         <form method="post">
             <div class="email">
@@ -28,4 +90,20 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Se desvanece automáticamente a los 3 segundos
+    document.addEventListener("DOMContentLoaded", function() {
+        const alerta = document.querySelector(".alert");
+        if (alerta) {
+            setTimeout(() => {
+                alerta.style.transition = "opacity 0.5s ease";
+                alerta.style.opacity = "0";
+                setTimeout(() => alerta.remove(), 500);
+            }, 3000);
+        }
+    });
+</script>
 {% endblock %}
