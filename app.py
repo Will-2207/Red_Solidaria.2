@@ -19,7 +19,9 @@ from controllers.donacion_controller import DonacionController
 from controllers.soportecontroller import SoporteController
 from controllers.home_administrador_controller import mostrar_home_administrador, api_admin
 
-app = Flask(__name__)
+basedir = os.path.abspath(os.path.dirname(__file__))
+# Cambia tu línea de inicialización de la app por esta:
+app = Flask(__name__, static_folder=os.path.join(basedir, 'static'))
 app.secret_key = "123456"
 
 # ================= CONFIGURACIÓN DE CORREO =================
@@ -121,6 +123,13 @@ def enviar_reporte_pdf_java(payload):
         return False
 
 # ================= RUTAS DE AUTENTICACIÓN =================
+
+
+@app.route('/test_ruta')
+def test_ruta():
+    ruta_static = app.static_folder
+    return f"La carpeta estática que Flask está usando es: {ruta_static}"
+
 
 @app.route("/")
 def inicio():
@@ -258,6 +267,23 @@ def rechazar_necesidad(necesidad_id):
     if 'usuario_id' not in session:
         return redirect(url_for('login'))
     return donacion_ctrl.rechazar_necesidad_accion(necesidad_id, session)
+
+@app.route('/debug_rutas')
+def debug_rutas():
+    import os
+    ruta_real = os.path.join(app.root_path, 'static', 'img', 'donaciones', 'don_2_descarga_7.jpg')
+    existe = os.path.exists(ruta_real)
+    return f"¿Existe el archivo en {ruta_real}?: {existe}"
+
+@app.route('/ver_carpeta')
+def ver_carpeta():
+    ruta = os.path.join(app.root_path, 'static', 'img', 'donaciones')
+    archivos = os.listdir(ruta)
+    return str(archivos)
+
+import os
+print(f"--- RUTA DE TRABAJO (CWD): {os.getcwd()} ---")
+print(f"--- RUTA DE STATIC (REAL): {os.path.join(os.getcwd(), 'static')} ---")
 
 # ================= RUN =================
 if __name__ == "__main__":

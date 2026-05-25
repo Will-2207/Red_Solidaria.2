@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request, session
 from models.donacion_model import DonacionModel
+from flask import current_app as app
 
 class DonacionController:
     def __init__(self, modelo=None):
@@ -12,7 +13,7 @@ class DonacionController:
         # Mapeo de la acción al ENUM de tu base de datos
         estado_db = 'recibido' if accion == 'aceptar' else 'rechazado'
         
-        exito = self.modelo.actualizar_estado_donacion(donacion_id, estado_db)
+        exito = self.modelo.cambiar_estado_donacion(donacion_id, estado_db)
         
         if exito:
             flash(f"✅ La donación ha sido marcada como {estado_db}", "success")
@@ -22,19 +23,19 @@ class DonacionController:
         return redirect(url_for("home_fundacion"))
 
     def eliminar(self, donacion_id):
-        if "usuario_id" not in session:
-            return redirect(url_for("login"))
+        """Elimina lógicamente una donación del panel de la fundación."""
+        if 'usuario_id' not in session:
+            return redirect(url_for('login'))
             
-        # Llamamos a la función de eliminación lógica
-        exito = self.modelo.eliminar_donacion_logica(donacion_id)
+        # Usamos el método unificado del modelo
+        exito = self.modelo.cambiar_estado_donacion(donacion_id, 'eliminado')
         
         if exito:
-            flash("🗑️ Donación marcada como 'eliminada' (permanece en reportes)", "info")
+            flash("🗑️ Donación eliminada del panel con éxito.", "success")
         else:
-            flash("❌ Error al procesar la eliminación", "danger")
-            
-        return redirect(url_for("home_fundacion"))
-
+            flash("❌ Error al intentar eliminar la donación.", "danger")
+        
+        return redirect(url_for('home_fundacion'))
     
     # =========================================================================
     # GESTIÓN DE NECESIDADES (SOLICITUDES DE AYUDA)
@@ -164,20 +165,25 @@ class DonacionController:
         return render_template('solicitar_ayuda.html', necesidad=necesidad, categories=categorias)
     
     
-    def eliminar_necesidad_accion(self, necesidad_id, session):
-        """Aplica el borrado lógico cambiándole el estado a 'eliminado'"""
-        exito = self.modelo.cambiar_estado_necesidad(necesidad_id, 'eliminado')
+    def eliminar(self, donacion_id):
+        """Elimina lógicamente una donación del panel de la fundación."""
+        # Validación de seguridad: Asegúrate que el usuario tenga sesión activa
+        if 'usuario_id' not in session:
+            return redirect(url_for('login'))
+            
+        # El método cambiar_estado_donacion debe existir en tu modelo
+        # y ejecutar el: UPDATE donaciones SET estado_donante = 'eliminado' WHERE id = ...
+        exito = self.modelo.cambiar_estado_donacion(donacion_id, 'eliminado')
+        
         if exito:
-            flash("🗑️ Solicitud de ayuda eliminada del panel.", "info")
+            flash("🗑️ Donación eliminada del panel con éxito.", "success")
         else:
-            flash("❌ No se pudo eliminar la solicitud de ayuda.", "danger")
+            flash("❌ Error al intentar eliminar la donación.", "danger")
+        
         return redirect(url_for('home_fundacion'))
-
-
     # =========================================================================
     # MÉTODOS DE DONACIONES PARA DONADORES
     # =========================================================================
-
 
     def publicar_donacion_view(self, request, session, necesidad_id=None):
         if "usuario_id" not in session:
@@ -187,7 +193,6 @@ class DonacionController:
         if necesidad_id:
             necesidad_prellenada = self.modelo.obtener_necesidad_por_id(necesidad_id)
 
-        # Obtener fundaciones activas
         from database.db import get_connection
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -207,22 +212,54 @@ class DonacionController:
             cantidad = request.form.get("cantidad")
             descripcion = request.form.get("descripcion")
 
+           # Reemplaza la lógica de guardado actual con esto:
             import os
+            from flask import current_app
             from werkzeug.utils import secure_filename
-            fotos_lista = request.files.getlist('fotos_donacion')
-            nombre_foto = None
 
-            if fotos_lista and fotos_lista[0].filename != '':
+            if fotos_lista:
+                # Obtenemos solo el primer archivo
                 primer_archivo = fotos_lista[0]
-                nombre_foto = secure_filename(primer_archivo.filename)
-                ruta_destino = os.path.join('static', 'img', 'donaciones', nombre_foto)
-                os.makedirs(os.path.dirname(ruta_destino), exist_ok=True)
-                primer_archivo.save(ruta_destino)
-
+                
+                # Verificamos que realmente sea un archivo
+                if primer_archivo and primer_archivo.filename != '':
+                    nombre_foto = secure_filename(primer_archivo.filename)
+                    
+                    # Ruta absoluta
+                    directorio_static = os.path.join(current_app.root_path, 'static')
+                    carpeta_destino = os.path.join(directorio_static, 'img', 'donaciones')
+                    
+                    # Puntos de control (DEBUG)
+                    print(f"DEBUG: Carpeta destino verificada: {carpeta_destino}")
+                    print(f"DEBUG: ¿Existe la carpeta?: {os.path.exists(carpeta_destino)}")
+                    
+                    if not os.path.exists(carpeta_destino):
+                        os.makedirs(carpeta_destino, exist_ok=True)
+                        
+                    ruta_destino = os.path.join(carpeta_destino, nombre_foto)
+                    
+                    print(f"DEBUG: Intentando guardar en: {ruta_destino}")
+                    print(f"DEBUG: Guardando en ruta absoluta: {os.path.abspath(ruta_destino)}")
+                    
+                    primer_archivo.save(ruta_destino)
+                    
+                    # ¡IMPORTANTE! Verificamos si realmente se creó el archivo
+                    if os.path.exists(ruta_destino):
+                        print("DEBUG: ¡ÉXITO! El archivo SÍ se creó físicamente.")
+                    else:
+                        print("DEBUG: ¡ERROR! El archivo NO aparece en el disco.")
+                    
+                    # Guardamos en BD solo el nombre del archivo
+                    nombre_foto_bd = nombre_foto
+                else:
+                    nombre_foto_bd = None
+            else:
+                nombre_foto_bd = None
+                
             if necesidad_prellenada:
                 fundacion_id = necesidad_prellenada["fundacion_id"]
                 exito = self.modelo.registrar_donacion_con_necesidad(
-                    donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto
+                    donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto_bd
                 )
             else:
                 fundacion_id = request.form.get("fundacion_id")
@@ -230,40 +267,26 @@ class DonacionController:
                     flash("Debes seleccionar una fundación destino.", "danger")
                     categorias = self.modelo.obtener_categorias()
                     return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
-                exito = self.modelo.registrar_donacion(donador_id, fundacion_id, categoria_id, cantidad, descripcion, nombre_foto)
+                exito = self.modelo.registrar_donacion(donador_id, fundacion_id, categoria_id, cantidad, descripcion, nombre_foto_bd)
 
             if exito:
                 try:
-                    conn = get_connection()
-                    cursor = conn.cursor(dictionary=True)
-                    # Obtener la última donación registrada por este usuario
-                    cursor.execute("SELECT id FROM donaciones WHERE usuario_id = %s ORDER BY id DESC LIMIT 1", (donador_id,))
-                    ultima_donacion = cursor.fetchone()
-                    
-                    if ultima_donacion:
-                        donacion_id = ultima_donacion['id']
-                        cursor.execute("UPDATE donaciones SET estado_donante = 'recibido' WHERE id = %s", (donacion_id,))
-                        
-                        # --- LÓGICA DE CIERRE: Marcar necesidad como completada ---
-                        # Si venía de una necesidad, la marcamos como completada para que no aparezca más
-                        if necesidad_prellenada and "id" in necesidad_prellenada:
-                            cursor.execute("UPDATE necesidades SET estado = 'completada' WHERE id = %s", (necesidad_prellenada["id"],))
-                        
+                    if necesidad_prellenada and "id" in necesidad_prellenada:
+                        conn = get_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("UPDATE necesidades SET estado = 'completada' WHERE id = %s", (necesidad_prellenada["id"],))
                         conn.commit()
+                        conn.close()
 
-                        # --- NOTIFICACIÓN A JAVA ---
-                        import requests
-                        datos_correo = {
-                            "destinatario": session.get("correo", "usuario@ejemplo.com"),
-                            "nombreFundacion": "Red Solidaria",
-                            "estado": "DONACION_REGISTRADA"
-                        }
-                        # El timeout ayuda a no bloquear la página si Java tarda en responder
-                        requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=3)
-                    
-                    conn.close()
+                    import requests
+                    datos_correo = {
+                        "destinatario": session.get("correo", "usuario@ejemplo.com"),
+                        "nombreFundacion": "Red Solidaria",
+                        "estado": "DONACION_REGISTRADA"
+                    }
+                    requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=3)
                 except Exception as e:
-                    print(f"⚠️ Error al finalizar el proceso de donación: {e}")
+                    print(f"⚠️ Error al finalizar el proceso: {e}")
 
                 flash("🎉 ¡Gracias! Tu donación ha sido registrada exitosamente.", "success")
                 return redirect(url_for("home_donador"))
@@ -272,8 +295,8 @@ class DonacionController:
 
         categorias = self.modelo.obtener_categorias()
         return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
-
-
+    
+    
     def home_donador_view(self, session, request):
         if "usuario_id" not in session:
             return redirect(url_for("login"))
@@ -315,9 +338,10 @@ class DonacionController:
         donacion_id = request.form.get('donacion_id')
         accion = request.form.get('accion')
         
-        # Ojo: El ID que está en sesión para la fundación es el ID del usuario logueado
         usuario_id = session.get('usuario_id') 
 
+        # Esto mapea la acción a una cadena de texto para actualizar la BD
+        # 'eliminar' pasará a ser el estado 'eliminado' en la tabla, no borra el registro.
         nuevo_estado = {
             'aceptar': 'recibido',
             'rechazar': 'rechazado',
@@ -328,32 +352,28 @@ class DonacionController:
             flash("❌ Acción no válida", "danger")
             return redirect(url_for('home_fundacion'))
 
-        # 1. Obtenemos los datos de la donación ANTES de actualizar para capturar la info del donante
+        # 1. Obtenemos datos ANTES de actualizar
         donacion_info = self.modelo.obtener_donacion_por_id(donacion_id)
 
-        # 2. Actualizamos el estado en la tabla de donaciones
-        exito = self.modelo.actualizar_estado_donacion(donacion_id, nuevo_estado)
+        # 2. Actualizamos el estado (ESTO DEBE SER UN UPDATE EN TU MODELO, NO UN DELETE)
+        exito = self.modelo.cambiar_estado_donacion(donacion_id, nuevo_estado)
 
         if exito:
-            # ── Sincronización con la Solicitud de Ayuda (Necesidad) ──
+            # ── Sincronización con la Solicitud de Ayuda ──
             try:
                 if donacion_info and donacion_info.get('necesidad_id'):
                     nec_id = donacion_info['necesidad_id']
-                    
                     if accion == 'rechazar':
-                        # Si se rechaza la donación, la necesidad vuelve a quedar activa en el sistema
                         self.modelo.cambiar_estado_necesidad(nec_id, 'activa')
                     elif accion == 'aceptar':
-                        # Si se acepta, pasa a completada
                         self.modelo.cambiar_estado_necesidad(nec_id, 'completada')
             except Exception as e:
-                print(f"⚠️ Error al sincronizar el estado de la necesidad: {e}")
-            # ─────────────────────────────────────────────────────────
+                print(f"⚠️ Error al sincronizar estado necesidad: {e}")
 
+            # ── Notificaciones ──
             if accion in ['aceptar', 'rechazar'] and donacion_info:
                 try:
                     datos_correo = {
-                        # Enviamos el correo al donador_email real obtenido desde el modelo
                         "destinatario": donacion_info.get("donador_email", "admin@redsolidaria.com"),
                         "nombreFundacion": session.get("nombre", "Fundación"),
                         "estado": "RECIBIDO" if accion == "aceptar" else "RECHAZADO_DONACION"

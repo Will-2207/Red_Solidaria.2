@@ -5,6 +5,17 @@
 {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/donar.css') }}" />
     <style>
+        /* ── Estructura para fijar el footer ── */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .page-wrapper {
+            flex: 1; /* Empuja el footer hacia abajo */
+        }
+
         .info-urgencia {
             background: #fff3cd;
             border: 1px solid #ffeeba;
@@ -82,126 +93,124 @@
             padding: 12px 20px !important;
             flex-shrink: 0 !important;
         }
-        footer.bg-dark h6 { font-size: 0.82rem !important; margin-bottom: 2px !important; }
-        footer.bg-dark p  { font-size: 0.76rem !important; margin-bottom: 1px !important; }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="form-card">
-        <h1 class="text-center mb-4 text-primary fw-bold">🎁 Publicar Donación</h1>
+<div class="page-wrapper">
+    <div class="container">
+        <div class="form-card">
+            <h1 class="text-center mb-4 text-primary fw-bold">🎁 Publicar Donación</h1>
 
-        {% if necesidad %}
-        <div class="info-urgencia shadow-sm">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Donación destinada a:</strong> {{ necesidad.nombre }}<br>
-            <small class="d-block mt-1"><strong>Causa:</strong> {{ necesidad.descripcion[:120] }}...</small>
-        </div>
-        {% endif %}
+            {% if necesidad %}
+            <div class="info-urgencia shadow-sm">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Donación destinada a:</strong> {{ necesidad.nombre }}<br>
+                <small class="d-block mt-1"><strong>Causa:</strong> {{ necesidad.descripcion[:120] }}...</small>
+            </div>
+            {% endif %}
 
-        <form method="POST" 
-                {# Línea corregida #}
-                action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else 0) }}" 
-                class="needs-validation" 
-                enctype="multipart/form-data" 
-                novalidate>
+            <form method="POST" 
+                  action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else 0) }}" 
+                  class="needs-validation" 
+                  enctype="multipart/form-data" 
+                  novalidate>
 
-            {# ── Fundación Destino ── #}
-            <div class="mb-3">
-                <label class="form-label fw-bold">🏛️ Fundación Destino:</label>
-                {% if necesidad %}
-                    <input type="text"
-                           value="{{ necesidad.nombre_fundacion }}"
-                           class="form-control readonly-field" readonly>
-                    <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
-                    {% if necesidad.descripcion_fundacion %}
-                    <div class="fundacion-desc-box" style="display:block;">
-                        <i class="fas fa-info-circle"></i>{{ necesidad.descripcion_fundacion }}
-                    </div>
+                {# ── Fundación Destino ── #}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">🏛️ Fundación Destino:</label>
+                    {% if necesidad %}
+                        <input type="text"
+                               value="{{ necesidad.nombre_fundacion }}"
+                               class="form-control readonly-field" readonly>
+                        <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
+                        {% if necesidad.descripcion_fundacion %}
+                        <div class="fundacion-desc-box" style="display:block;">
+                            <i class="fas fa-info-circle"></i>{{ necesidad.descripcion_fundacion }}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <select name="fundacion_id" class="form-select" required
+                                onchange="mostrarDescripcionFundacion(this)">
+                            <option value="" disabled selected>Selecciona la fundación destino...</option>
+                            {% for fund in fundaciones_activas %}
+                                <option value="{{ fund.id }}"
+                                        data-desc="{{ fund.descripcion if fund.descripcion else '' }}">
+                                    {{ fund.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="fundacion-desc-box" id="desc-fundacion">
+                            <i class="fas fa-info-circle"></i>
+                            <span id="texto-desc-fundacion"></span>
+                        </div>
                     {% endif %}
-                {% else %}
-                    <select name="fundacion_id" class="form-select" required
-                            onchange="mostrarDescripcionFundacion(this)">
-                        <option value="" disabled selected>Selecciona la fundación destino...</option>
-                        {% for fund in fundaciones_activas %}
-                            <option value="{{ fund.id }}"
-                                    data-desc="{{ fund.descripcion if fund.descripcion else '' }}">
-                                {{ fund.nombre }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {# Caja descripción dinámica — se muestra al elegir fundación #}
-                    <div class="fundacion-desc-box" id="desc-fundacion">
-                        <i class="fas fa-info-circle"></i>
-                        <span id="texto-desc-fundacion"></span>
+                </div>
+
+                {# ── Categoría ── #}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">📂 Categoría de la Donación:</label>
+                    {% if necesidad %}
+                        <input type="text" value="{{ necesidad.nombre_categoria }}"
+                               class="form-control readonly-field" readonly>
+                        <input type="hidden" name="categoria_id" value="{{ necesidad.categoria_id }}">
+                    {% else %}
+                        <select name="categoria_id" class="form-select" required>
+                            <option value="" disabled selected>Selecciona qué vas a donar...</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    {% endif %}
+                </div>
+
+                {# ── Descripción ── #}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">📝 Descripción de tu donación:</label>
+                    <textarea name="descripcion" class="form-control" rows="3"
+                              placeholder="Ej: 5 bolsas de arroz de 1kg, Ropa para niños talla 10, etc."
+                              required></textarea>
+                    <div class="form-text">Sé lo más específico posible para ayudar a la fundación.</div>
+                </div>
+
+                {# ── Cantidad ── #}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">🔢 Cantidad / Unidades:</label>
+                    <input type="number" name="cantidad" class="form-control" min="1"
+                           placeholder="{{ necesidad.cantidad if necesidad else 'Ingresa el número de artículos' }}"
+                           required>
+                </div>
+
+                {# ── Fotos (máx. 3) ── #}
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        📸 Fotos de la Donación
+                        <span class="text-muted fw-normal">(opcional, máx. 3)</span>
+                    </label>
+                    <div class="fotos-zona" onclick="document.getElementById('inputFotos').click()">
+                        <div style="font-size:2rem;">📷</div>
+                        <p class="mt-1">Haz clic para agregar fotos de lo que vas a donar</p>
+                        <p><small>JPG, PNG — Máximo 3 imágenes</small></p>
                     </div>
-                {% endif %}
-            </div>
-
-            {# ── Categoría ── #}
-            <div class="mb-3">
-                <label class="form-label fw-bold">📂 Categoría de la Donación:</label>
-                {% if necesidad %}
-                    <input type="text" value="{{ necesidad.nombre_categoria }}"
-                           class="form-control readonly-field" readonly>
-                    <input type="hidden" name="categoria_id" value="{{ necesidad.categoria_id }}">
-                {% else %}
-                    <select name="categoria_id" class="form-select" required>
-                        <option value="" disabled selected>Selecciona qué vas a donar...</option>
-                        {% for cat in categorias %}
-                            <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                {% endif %}
-            </div>
-
-            {# ── Descripción ── #}
-            <div class="mb-3">
-                <label class="form-label fw-bold">📝 Descripción de tu donación:</label>
-                <textarea name="descripcion" class="form-control" rows="3"
-                          placeholder="Ej: 5 bolsas de arroz de 1kg, Ropa para niños talla 10, etc."
-                          required></textarea>
-                <div class="form-text">Sé lo más específico posible para ayudar a la fundación.</div>
-            </div>
-
-            {# ── Cantidad ── #}
-            <div class="mb-3">
-                <label class="form-label fw-bold">🔢 Cantidad / Unidades:</label>
-                <input type="number" name="cantidad" class="form-control" min="1"
-                       placeholder="{{ necesidad.cantidad if necesidad else 'Ingresa el número de artículos' }}"
-                       required>
-            </div>
-
-            {# ── Fotos (máx. 3) ── #}
-            <div class="mb-4">
-                <label class="form-label fw-bold">
-                    📸 Fotos de la Donación
-                    <span class="text-muted fw-normal">(opcional, máx. 3)</span>
-                </label>
-                <div class="fotos-zona" onclick="document.getElementById('inputFotos').click()">
-                    <div style="font-size:2rem;">📷</div>
-                    <p class="mt-1">Haz clic para agregar fotos de lo que vas a donar</p>
-                    <p><small>JPG, PNG — Máximo 3 imágenes</small></p>
+                    <input type="file" id="inputFotos" name="fotos_donacion" 
+                                            accept="image/jpeg,image/png" style="display:none;" 
+                                            onchange="previsualizarFotos(this)">
+                    <div class="fotos-preview" id="preview-fotos"></div>
+                    <div id="msg-fotos" class="form-text text-danger" style="display:none;">
+                        Máximo 1 foto permitida.
+                    </div>
                 </div>
-                <input type="file" id="inputFotos" name="fotos_donacion"
-                       accept="image/jpeg,image/png" multiple style="display:none;"
-                       onchange="previsualizarFotos(this)">
-                <div class="fotos-preview" id="preview-fotos"></div>
-                <div id="msg-fotos" class="form-text text-danger" style="display:none;">
-                    Máximo 3 fotos permitidas.
-                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
+                    {% if necesidad %}🤝 CONFIRMAR AYUDA AHORA{% else %}🚀 PUBLICAR MI DONACIÓN{% endif %}
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('home_donador') }}" class="text-decoration-none text-muted small">
+                    <i class="fas fa-arrow-left me-1"></i> Volver al Panel de Donador
+                </a>
             </div>
-
-            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                {% if necesidad %}🤝 CONFIRMAR AYUDA AHORA{% else %}🚀 PUBLICAR MI DONACIÓN{% endif %}
-            </button>
-        </form>
-
-        <div class="text-center mt-4">
-            <a href="{{ url_for('home_donador') }}" class="text-decoration-none text-muted small">
-                <i class="fas fa-arrow-left me-1"></i> Volver al Panel de Donador
-            </a>
         </div>
     </div>
 </div>
@@ -209,7 +218,6 @@
 
 {% block scripts %}
 <script>
-    // ── Descripción de fundación al seleccionar ──
     function mostrarDescripcionFundacion(select) {
         const opcion = select.options[select.selectedIndex];
         const desc   = opcion.getAttribute('data-desc');
@@ -223,7 +231,6 @@
         }
     }
 
-    // ── Previsualizar fotos (máx. 3) ──
     let archivosSeleccionados = [];
 
     function previsualizarFotos(input) {

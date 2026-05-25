@@ -7,239 +7,84 @@
     <link href="{{ url_for('static', filename='css/home_fundacion.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/home_donador.css') }}" rel="stylesheet">
     <style>
-                /* --- DISEÑO EXCLUSIVO DE TARJETAS FILTRADAS --- */
-        .donacion-card {
-            background: #ffffff;
-            border-radius: 16px !important;
-            border: 1px solid #eef2f5 !important; /* Borde gris muy suave clásico del diseño */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            overflow: hidden;
-        }
+    /* --- DISEÑO EXCLUSIVO DE TARJETAS FILTRADAS --- */
+    .donacion-card {
+        background: #ffffff;
+        border-radius: 16px !important;
+        border: 1px solid #eef2f5 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+    }
 
-        .donacion-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
-        }
+    .donacion-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+    }
 
-        /* Título de la tarjeta */
-        .donacion-card .card-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #212529;
-        }
+    .donacion-card .card-title { font-size: 1.15rem; font-weight: 700; color: #212529; }
+    .donacion-card .italic-quote { font-style: italic; color: #8a92a6; font-size: 0.9rem; line-height: 1.4; }
+    .donacion-card .contact-box { background-color: #f8f9fa; border: 1px dashed #dee2e6 !important; border-radius: 14px; padding: 14px 16px; }
+    .donacion-card .contact-box span { font-size: 0.88rem; color: #495057; }
 
-        /* Descripción en gris claro y cursiva sutil */
-        .donacion-card .italic-quote {
-            font-style: italic;
-            color: #8a92a6;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
+    .badge-categoria {
+        background-color: #e3f2fd !important;
+        color: #0d6efd !important;
+        font-size: 0.72rem !important;
+        font-weight: 600;
+        padding: 5px 12px !important;
+        border-radius: 30px !important;
+        text-transform: capitalize;
+    }
 
-        /* Contenedor de contacto gris con borde punteado redondeado */
-        .donacion-card .contact-box {
-            background-color: #f8f9fa; 
-            border: 1px dashed #dee2e6 !important; 
-            border-radius: 14px;
-            padding: 14px 16px;
-        }
+    .caja-cantidad { background-color: #f8f9fa; border-radius: 8px; padding: 8px 12px; }
 
-        /* Tipografía de los datos de contacto internos */
-        .donacion-card .contact-box span {
-            font-size: 0.88rem;
-            color: #495057;
-        }
+    /* ── Foto de perfil lateral ── */
+    .foto-perfil-lateral { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #f5c518; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
 
-        /* Badge de Categoría (Azul plano y limpio) */
-        .badge-categoria {
-            background-color: #e3f2fd !important;
-            color: #0d6efd !important;
-            font-size: 0.72rem !important;
-            font-weight: 600;
-            padding: 5px 12px !important;
-            border-radius: 30px !important;
-            text-transform: capitalize;
-        }
+    /* ── Stats panel ── */
+    .stats-lateral { background: #fff; border-radius: 14px; border: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.06); overflow: hidden; margin-top: 14px; }
+    .stats-lateral-header { background: linear-gradient(135deg, #7b2ff7, #43c98a); color: white; font-weight: 700; font-size: 0.82rem; padding: 8px 14px; text-transform: uppercase; }
+    .stats-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; border-bottom: 1px solid #f5f5f5; font-size: 0.85rem; color: #444; }
+    
+    .stats-num { font-weight: 800; font-size: 1rem; min-width: 28px; text-align: center; padding: 2px 8px; border-radius: 20px; }
+    .num-pendiente { background: #fff3cd; color: #856404; }
+    .num-recibido { background: #d1f7e3; color: #155724; }
+    .num-rechazado { background: #f8d7da; color: #721c24; }
 
-        /* Caja de cantidad */
-        .caja-cantidad {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 8px 12px;
-        }
+    /* ── Modal foto (CORREGIDO PARA TAMAÑO MODAL) ── */
+    #modalFotoOverlay {
+        display:none; position:fixed; inset:0;
+        background:rgba(0,0,0,0.85); z-index:9999;
+        justify-content:center; align-items:center;
+    }
+    #modalFotoOverlay.activo { display:flex; }
+    
+    /* Esta clase controla el tamaño máximo y estilo de la foto en el modal */
+    .modal-content-img {
+        max-width: 700px;    /* Tamaño máximo ancho */
+        max-height: 80vh;    /* Altura máxima para no desbordar */
+        width: 90%;          /* Adaptable en móviles */
+        object-fit: contain; /* Mantiene la proporción de la foto */
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        background: white;
+        padding: 5px;
+    }
 
-        /* ── Foto de perfil lateral ── */
-        .foto-perfil-lateral {
-            width: 110px; height: 110px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid #f5c518;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
-        .avatar-inicial-lateral {
-            width: 110px; height: 110px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: 800; font-size: 2.5rem;
-            border: 4px solid #f5c518;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            margin: 0 auto;
-        }
+    #modalFotoOverlay .btn-cerrar-foto {
+        position:fixed; top:20px; right:25px; background:white;
+        border:none; border-radius:50%; width:40px; height:40px;
+        font-size:1.2rem; cursor:pointer; font-weight:700;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
 
-        /* ── Stats panel ── */
-        .stats-lateral {
-            background: #fff;
-            border-radius: 14px;
-            border: 1px solid #eee;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-            overflow: hidden;
-            margin-top: 14px;
-        }
-        .stats-lateral-header {
-            background: linear-gradient(135deg, #7b2ff7, #43c98a);
-            color: white;
-            font-weight: 700;
-            font-size: 0.82rem;
-            padding: 8px 14px;
-            letter-spacing: .04em;
-            text-transform: uppercase;
-        }
-        .stats-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 9px 14px;
-            border-bottom: 1px solid #f5f5f5;
-            font-size: 0.85rem;
-            color: #444;
-        }
-        .stats-item:last-child { border-bottom: none; }
-        .stats-item .label { display: flex; align-items: center; gap: 7px; }
-        .stats-num {
-            font-weight: 800;
-            font-size: 1rem;
-            min-width: 28px;
-            text-align: center;
-            padding: 2px 8px;
-            border-radius: 20px;
-        }
-        .num-pendiente    { background: #fff3cd; color: #856404; }
-        .num-recibido     { background: #d1f7e3; color: #155724; }
-        .num-rechazado    { background: #f8d7da; color: #721c24; }
-        .num-alimentos    { background: #cce5ff; color: #004085; }
-        .num-ropa         { background: #e2d9f3; color: #4a235a; }
-        .num-otros        { background: #ffeeba; color: #6d4c00; }
-        .num-total        { background: #e9ecef; color: #333; }
-        .num-transaccion  { background: #d4edda; color: #155724; }
-
-        /* ── Alerta toast ── */
-        .toast-donacion {
-            position: fixed;
-            top: 80px; right: 20px;
-            z-index: 9999;
-            min-width: 300px; max-width: 420px;
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-            padding: 16px 20px;
-            display: flex; align-items: center; gap: 12px;
-            border-left: 5px solid #00c97a;
-            animation: slideInToast 0.4s ease;
-        }
-        @keyframes slideInToast {
-            from { opacity:0; transform: translateX(60px); }
-            to   { opacity:1; transform: translateX(0); }
-        }
-        .toast-donacion .toast-icon { font-size: 1.8rem; }
-        .toast-donacion .toast-msg  { font-size: 0.9rem; font-weight: 600; color: #333; }
-        .toast-donacion .toast-sub  { font-size: 0.78rem; color: #777; margin-top: 2px; }
-
-        /* ── Fotos donación ── */
-        .fotos-donacion { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-        .fotos-donacion img {
-            width:75px; height:75px; object-fit:cover;
-            border-radius:8px; border:2px solid #dee2e6;
-            cursor:pointer; transition:transform 0.2s;
-        }
-        .fotos-donacion img:hover { transform:scale(1.08); border-color:#f5c518; }
-
-        /* ── Modal foto ── */
-        #modalFotoOverlay {
-            display:none; position:fixed; inset:0;
-            background:rgba(0,0,0,0.85); z-index:9999;
-            justify-content:center; align-items:center;
-        }
-        #modalFotoOverlay.activo { display:flex; }
-        #modalFotoOverlay img { max-width:90vw; max-height:85vh; border-radius:12px; }
-        #modalFotoOverlay .btn-cerrar-foto {
-            position:fixed; top:20px; right:25px; background:white;
-            border:none; border-radius:50%; width:36px; height:36px;
-            font-size:1.1rem; cursor:pointer; font-weight:700;
-        }
-
-                /* Contenedor que obliga a las tarjetas a alinearse horizontalmente */
-        .contenedor-solicitudes-carrusel {
-            display: flex;
-            overflow-x: auto;
-            gap: 20px;
-            padding-bottom: 15px;
-            scroll-behavior: smooth;
-        }
-
-        /* Forzar que cada tarjeta mida un ancho fijo y no se deforme */
-        .tarjeta-carrusel-item {
-            flex: 0 0 320px; /* No se reduce, no se estira, mide exactamente 320px */
-            max-width: 320px;
-        }
-
-        /* Controlar que las descripciones largas no desalineen las tarjetas */
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;  
-            overflow: hidden;
-        }
-
-        /* Diseño de la barra de scroll horizontal */
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar {
-            height: 8px; /* Altura de la barra */
-        }
-
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb {
-            background: #ffc107; /* Color amarillo a juego con el borde de tu sección */
-            border-radius: 10px;
-        }
-
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb:hover {
-            background: #e0a800; /* Se oscurece al pasar el puntero */
-        }
-
-                /* Customización de la barra horizontal del carrusel */
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar {
-            height: 6px;
-        }
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.03);
-            border-radius: 10px;
-        }
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.15);
-            border-radius: 10px;
-        }
-        .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.3);
-        }
-        .tarjeta-carrusel-item:hover {
-            transform: translateY(-3px);
-        }
-    </style>
+    /* ── Carrusel de Solicitudes ── */
+    .contenedor-solicitudes-carrusel { display: flex; overflow-x: auto; gap: 20px; padding-bottom: 15px; scroll-behavior: smooth; }
+    .tarjeta-carrusel-item { flex: 0 0 320px; max-width: 320px; }
+    .contenedor-solicitudes-carrusel::-webkit-scrollbar { height: 6px; }
+    .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+</style>
 
 {% endblock %}
 
@@ -499,16 +344,14 @@
                     <span class="badge bg-dark">{{ donaciones|length if donaciones else 0 }} resultados</span>
                 </div>
 
-                {% if donaciones %}
+               {% if donaciones %}
 <div class="row g-4">
     {% for d in donaciones %}
     <div class="col-12 col-md-6 col-lg-6">
         <div class="card donacion-card h-100">
             
             <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
-                <span class="badge badge-categoria">
-                    {{ d.nombre_categoria }}
-                </span>
+                <span class="badge badge-categoria">{{ d.nombre_categoria }}</span>
                 
                 {% if d.estado_donante == 'recibido' %}
                     <span class="badge bg-success text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECIBIDO</span>
@@ -523,25 +366,20 @@
 
             <div class="card-body px-4 py-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-    <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
-    
-    {# Si la donación tiene foto en la BD, muestra tu botón nativo con onclick; si no, dice Sin foto #}
-    {% if d.fotos %}
-    <button type="button" 
-            class="btn btn-sm btn-link text-primary fw-bold p-0 text-decoration-none"
-            data-ruta="{{ url_for('static', filename='img/donaciones/' + d.fotos) }}"
-            onclick="abrirFoto(this.getAttribute('data-ruta'))">
-        🖼️ Ver Foto
-    </button>
-{% else %}
-    <small class="text-muted italic" style="font-size: 0.75rem;">🚫 Sin foto</small>
-{% endif %}
-</div>
+                    <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
+                    
+                    {% if d.foto_existe %}
+                        <button type="button" class="btn btn-sm btn-link" 
+                                onclick="document.getElementById('modalFotoOverlay').classList.add('activo'); document.getElementById('fotoModal').src='{{ url_for('static', filename='img/donaciones/' + d.fotos) }}';">
+                            🖼️ Ver Foto
+                        </button>
+                    {% else %}
+                        <span class="text-muted small">Sin imagen</span>
+                    {% endif %}
+                </div>
 
-                <p class="card-text italic-quote mb-3">
-                    "{{ d.descripcion }}"
-                </p>
-
+                <p class="card-text italic-quote mb-3">"{{ d.descripcion }}"</p>
+                
                 <div class="contact-box mb-3">
                     <div class="d-flex flex-column gap-2">
                         <div class="d-flex align-items-center gap-2">
@@ -567,35 +405,40 @@
 
             <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
                 {% if d.estado_donante == 'pendiente' %}
-                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100">
+                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100 mb-2">
                         <input type="hidden" name="donacion_id" value="{{ d.id }}">
-                        <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">
-                            Aceptar
-                        </button>
-                        <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">
-                            Rechazar
-                        </button>
-                        <a href="{{ url_for('eliminar_donacion_ruta', id=d.id) }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3" style="border-radius: 10px;" onclick="return confirm('¿Deseas eliminar este registro?');">
-                            <i class="bi bi-trash3-fill"></i>
-                        </a>
+                        <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Aceptar</button>
+                        <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Rechazar</button>
                     </form>
                 {% else %}
-                    <div class="text-center py-2">
+                    <div class="text-center py-2 mb-2">
                         {% if d.estado_donante == 'recibido' %}
-                            <span class="text-success small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Gestionado como recibido</span>
+                            <span class="text-success small fw-bold text-uppercase">Gestionado como recibido</span>
                         {% elif d.estado_donante == 'rechazado' %}
-                            <span class="text-danger small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Donación rechazada</span>
+                            <span class="text-danger small fw-bold text-uppercase">Donación rechazada</span>
                         {% elif d.estado_donante == 'eliminado' %}
-                            <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Archivado en reportes</span>
+                            <span class="text-muted small fw-bold text-uppercase">Archivado en reportes</span>
                         {% endif %}
                     </div>
                 {% endif %}
-            </div>
 
-        </div>
+                <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="w-100 text-center">
+                    <input type="hidden" name="donacion_id" value="{{ d.id }}">
+                    <button type="submit" name="accion" value="eliminar" class="btn btn-outline-secondary w-100 py-2" style="border-radius: 10px; font-size: 0.85rem;" onclick="return confirm('¿Deseas eliminar este registro?');">
+                        <i class="bi bi-trash3-fill"></i> Eliminar registro
+                    </button>
+                </form>
+            </div>
+        </div> 
     </div>
     {% endfor %}
 </div>
+
+<div id="modalFotoOverlay" onclick="this.classList.remove('activo')">
+    <button class="btn-cerrar-foto" onclick="document.getElementById('modalFotoOverlay').classList.remove('activo')">×</button>
+    <img id="fotoModal" src="" class="modal-content-img" onclick="event.stopPropagation()">
+</div>
+
 {% else %}
 <div class="text-center py-5 bg-white rounded-4 border" style="border-radius: 16px;">
     <p class="text-muted mb-0 fw-medium">No se encontraron donaciones con estos filtros.</p>

@@ -18,10 +18,10 @@ class DonacionModel:
             f_id = int(f_id) if f_id else 0
 
             query = """
-                INSERT INTO donaciones 
-                (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, fotos)
-                VALUES (%s, %s, %s, %s, %s, 'recibido', NOW(), %s)
-            """
+                    INSERT INTO donaciones 
+                    (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, fotos)
+                    VALUES (%s, %s, %s, %s, %s, 'pendiente', NOW(), %s)
+                """
             cursor.execute(query, (donador_id, f_id, c_id, cantidad, descripcion, fotos_str))
             
             conn.commit()
@@ -46,10 +46,10 @@ class DonacionModel:
             f_id = int(f_id) if f_id else 0
             
             query = """
-                INSERT INTO donaciones 
-                (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, necesidad_id, fotos)
-                VALUES (%s, %s, %s, %s, %s, 'recibido', NOW(), %s, %s)
-            """
+                    INSERT INTO donaciones 
+                    (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, estado_donante, fecha, necesidad_id, fotos)
+                    VALUES (%s, %s, %s, %s, %s, 'pendiente', NOW(), %s, %s)
+                """
             cursor.execute(query, (donador_id, f_id, c_id, cantidad, descripcion, n_id, fotos_str))
             
             conn.commit()
@@ -129,31 +129,32 @@ class DonacionModel:
         try:
             cursor = conn.cursor(dictionary=True)
             
-            # 1. Base de la consulta con los alias correctos para los reportes
+            # 1. Base de la consulta: Ya incluye el filtro para ocultar los 'eliminado'
             query = """
                 SELECT d.*, 
-                        c.nombre as nombre_categoria, 
-                        u.nombre as nombre_donante,
-                        u.telefono,  -- <-- IMPORTANTE: Agregar esto para mapear en la tarjeta
-                        u.correo     -- <-- IMPORTANTE: Agregar esto para mapear en la tarjeta
+                       c.nombre as nombre_categoria, 
+                       u.nombre as nombre_donante,
+                       u.telefono,
+                       u.correo
                 FROM donaciones d
                 JOIN categorias c ON d.categoria_id = c.id
                 JOIN usuarios u ON d.usuario_id = u.id
-                WHERE d.fundacion_id = %s AND d.estado_donante != 'eliminado'
+                WHERE d.fundacion_id = %s 
+                AND d.estado_donante != 'eliminado'
             """
             params = [fundacion_id]
 
-            # 2. Filtro por búsqueda de texto (Descripción)
+            # 2. Filtro por descripción
             if q:
                 query += " AND LOWER(d.descripcion) LIKE %s"
                 params.append(f"%{q.lower().strip()}%")
 
-            # 3. CORREGIDO: Filtro por el nombre de la categoría (en lugar del ID)
+            # 3. Filtro por categoría
             if categoria and categoria.lower() != 'todas' and categoria.strip() != '':
                 query += " AND LOWER(c.nombre) = %s"
                 params.append(categoria.lower().strip())
 
-            # 4. CORREGIDO: Filtro por estado robusto con LOWER
+            # 4. Filtro por estado
             if estado and estado.lower() != 'todos' and estado.strip() != '':
                 query += " AND LOWER(d.estado_donante) = %s"
                 params.append(estado.lower().strip())
@@ -163,6 +164,7 @@ class DonacionModel:
                 query += " AND LOWER(u.nombre) LIKE %s"
                 params.append(f"%{donante.lower().strip()}%")
 
+            # 6. Orden
             query += " ORDER BY d.fecha DESC"
 
             cursor.execute(query, params)
@@ -482,18 +484,23 @@ class DonacionModel:
             conn.close()        
             
 
-    def eliminar_donacion_logica(self, donacion_id):
-        """Cambia el estado a 'eliminado' para que persista en reportes"""
-        from database.db import get_connection
+    def cambiar_estado_donacion(self, id, nuevo_estado):
+        """
+        Este es el método que tu controlador llamará para:
+        1. Aceptar (estado='recibido')
+        2. Rechazar (estado='rechazado')
+        3. Eliminar (estado='eliminado')
+        """
         conn = get_connection()
         try:
             cursor = conn.cursor()
-            query = "UPDATE donaciones SET estado_donante = 'eliminado' WHERE id = %s"
-            cursor.execute(query, (donacion_id,))
+            sql = "UPDATE donaciones SET estado_donante = %s WHERE id = %s"
+            cursor.execute(sql, (nuevo_estado, id))
             conn.commit()
-            return cursor.rowcount > 0
+            cursor.close()
+            return True
         except Exception as e:
-            print(f"Error en eliminación lógica: {e}")
+            print(f"❌ Error al actualizar estado de donación {id}: {e}")
             return False
         finally:
             conn.close()
