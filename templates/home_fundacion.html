@@ -60,12 +60,11 @@
     }
     #modalFotoOverlay.activo { display:flex; }
     
-    /* Esta clase controla el tamaño máximo y estilo de la foto en el modal */
     .modal-content-img {
-        max-width: 700px;    /* Tamaño máximo ancho */
-        max-height: 80vh;    /* Altura máxima para no desbordar */
-        width: 90%;          /* Adaptable en móviles */
-        object-fit: contain; /* Mantiene la proporción de la foto */
+        max-width: 700px;
+        max-height: 80vh;
+        width: 90%;
+        object-fit: contain;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         background: white;
@@ -84,26 +83,58 @@
     .tarjeta-carrusel-item { flex: 0 0 320px; max-width: 320px; }
     .contenedor-solicitudes-carrusel::-webkit-scrollbar { height: 6px; }
     .contenedor-solicitudes-carrusel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 10px; }
+
+        /* ── MENSAJE FLASH CORREGIDO (Pequeño y Posicionado) ── */
+        .flash-container-wrapper {
+        position: absolute !important; 
+        top: 80px !important; 
+        /* CAMBIO: Aumenta este valor (ej. 250px o 300px) hasta que el 
+           recuadro quede justo debajo de tu botón de Fundación */
+        right: 50px !important; 
+        width: auto !important; 
+        max-width: 350px !important;
+        z-index: 9999 !important;
+    }
+
+    .toast-donacion {
+        background: #ffffff !important;
+        border-left: 5px solid #28a745 !important;
+        padding: 10px 15px !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+        color: #333 !important;
+        font-size: 14px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .toast-icon {
+        margin-right: 10px !important;
+        font-size: 18px !important;
+    }
 </style>
 
 {% endblock %}
 
 {% block content %}
 
-{# ── ALERTA FLASH TIPO TOAST ── #}
+{# ── ALERTA FLASH TIPO TOAST (CORREGIDA) ── #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    {% for category, message in messages %}
-    <div class="toast-donacion" id="toastDonacion">
-        <div class="toast-icon">
-            {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% else %}ℹ️{% endif %}
+    <div class="flash-container-wrapper">
+      {% for category, message in messages %}
+        <div class="toast-donacion {{ category }}">
+            <div class="toast-icon">
+                {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% else %}ℹ️{% endif %}
+            </div>
+            <div class="toast-content">
+                <div class="toast-msg">{{ message }}</div>
+                <div class="toast-sub">Este mensaje desaparecerá en unos segundos</div>
+            </div>
         </div>
-        <div>
-            <div class="toast-msg">{{ message }}</div>
-            <div class="toast-sub">Este mensaje desaparecerá en unos segundos</div>
-        </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   {% endif %}
 {% endwith %}
 
@@ -497,51 +528,61 @@
 
 {% block scripts %}
 <script>
-    // Control de envío del reporte con spinner
+    // 1. Control de envío del reporte con spinner
     function manejarEnvio(e) {
         if (e.submitter && e.submitter.value === 'reporte') {
             const btn = document.getElementById('btnReporte');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
-            btn.classList.add("disabled");
+            if (btn) {
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+                btn.classList.add("disabled");
+            }
         }
         return true;
     }
         
+    // 2. Confirmación de eliminación
     function confirmarEliminar(idSolicitud) {
         if (confirm("¿Estás seguro de que deseas eliminar esta solicitud? No se mostrará en el panel, pero quedará guardada en el historial del sistema.")) {
             window.location.href = "/eliminar_solicitud/" + idSolicitud;
         }
     }
 
-    // Funciones para visualizar las fotos adjuntas en grande
+    // 3. Funciones para visualizar las fotos adjuntas en grande
     function abrirFoto(src) {
-        document.getElementById('modalFotoImg').src = src;
-        document.getElementById('modalFotoOverlay').classList.add('activo');
+        const modal = document.getElementById('modalFotoOverlay');
+        const img = document.getElementById('modalFotoImg');
+        if (modal && img) {
+            img.src = src;
+            modal.classList.add('activo');
+        }
     }
     
     function cerrarFoto() {
-        document.getElementById('modalFotoOverlay').classList.remove('activo');
+        const modal = document.getElementById('modalFotoOverlay');
+        if (modal) modal.classList.remove('activo');
     }
     
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarFoto(); });
 
-    // Carga de componentes del DOM
+    // 4. Carga de componentes del DOM
     document.addEventListener("DOMContentLoaded", function() {
         
-        // 1. Control de desvanecimiento de alertas tipo Toast
-        const toast = document.getElementById('toastDonacion');
-        if (toast) {
+        // --- CORRECCIÓN: Control de desvanecimiento de alertas tipo Toast ---
+        // Ahora usamos querySelectorAll para capturar todos los mensajes sin importar su ID
+        const toasts = document.querySelectorAll('.toast-donacion');
+        
+        toasts.forEach(function(toast) {
             setTimeout(function() {
                 toast.style.transition = "opacity 0.8s ease, transform 0.8s ease";
                 toast.style.opacity = "0";
                 toast.style.transform = "translateX(60px)";
+                // Elimina el elemento del DOM completamente después de la animación
                 setTimeout(() => toast.remove(), 800);
-            }, 4000);
-        }
+            }, 4000); // 4 segundos de espera antes de desaparecer
+        });
 
-        // 2. INYECTOR SEGURO PARA EL POPUP DE LA NAVAR (Esquina superior derecha)
+        // 5. INYECTOR SEGURO PARA EL POPUP DE LA NAVAR
         const menúPopup = document.querySelector('.dropdown-menu');
-        
         if (menúPopup) {
             const elementoReferencia = menúPopup.querySelector('a, button, hr, .dropdown-divider');
             
@@ -558,10 +599,10 @@
             }
         }
 
-        // 3. INICIALIZADOR POR SI ACASO PARA LOS POPOVERS DE BOOTSTRAP
-        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl)
+        // 6. INICIALIZADOR PARA LOS POPOVERS DE BOOTSTRAP
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
         });
     });
 </script>
