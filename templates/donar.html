@@ -120,29 +120,22 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">🏛️ Fundación Destino:</label>
                     {% if necesidad %}
-                        <input type="text"
-                               value="{{ necesidad.nombre_fundacion }}"
-                               class="form-control readonly-field" readonly>
+                        <input type="text" value="{{ necesidad.nombre_fundacion }}" class="form-control readonly-field" readonly>
                         <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
                         {% if necesidad.descripcion_fundacion %}
                         <div class="fundacion-desc-box" style="display:block;">
-                            <i class="fas fa-info-circle"></i>{{ necesidad.descripcion_fundacion }}
+                            <i class="fas fa-info-circle"></i> {{ necesidad.descripcion_fundacion }}
                         </div>
                         {% endif %}
                     {% else %}
-                        <select name="fundacion_id" class="form-select" required
-                                onchange="mostrarDescripcionFundacion(this)">
+                        <select name="fundacion_id" class="form-select" required onchange="mostrarDescripcionFundacion(this)">
                             <option value="" disabled selected>Selecciona la fundación destino...</option>
                             {% for fund in fundaciones_activas %}
-                                <option value="{{ fund.id }}"
-                                        data-desc="{{ fund.descripcion if fund.descripcion else '' }}">
-                                    {{ fund.nombre }}
-                                </option>
+                                <option value="{{ fund.id }}" data-desc="{{ fund.descripcion if fund.descripcion else '' }}">{{ fund.nombre }}</option>
                             {% endfor %}
                         </select>
                         <div class="fundacion-desc-box" id="desc-fundacion">
-                            <i class="fas fa-info-circle"></i>
-                            <span id="texto-desc-fundacion"></span>
+                            <i class="fas fa-info-circle"></i> <span id="texto-desc-fundacion"></span>
                         </div>
                     {% endif %}
                 </div>
@@ -151,8 +144,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">📂 Categoría de la Donación:</label>
                     {% if necesidad %}
-                        <input type="text" value="{{ necesidad.nombre_categoria }}"
-                               class="form-control readonly-field" readonly>
+                        <input type="text" value="{{ necesidad.nombre_categoria }}" class="form-control readonly-field" readonly>
                         <input type="hidden" name="categoria_id" value="{{ necesidad.categoria_id }}">
                     {% else %}
                         <select name="categoria_id" class="form-select" required>
@@ -167,42 +159,46 @@
                 {# ── Descripción ── #}
                 <div class="mb-3">
                     <label class="form-label fw-bold">📝 Descripción de tu donación:</label>
-                    <textarea name="descripcion" class="form-control" rows="3"
-                              placeholder="Ej: 5 bolsas de arroz de 1kg, Ropa para niños talla 10, etc."
-                              required></textarea>
-                    <div class="form-text">Sé lo más específico posible para ayudar a la fundación.</div>
+                    <textarea name="descripcion" class="form-control" rows="3" placeholder="Ej: 5 bolsas de arroz de 1kg..." required></textarea>
                 </div>
 
                 {# ── Cantidad ── #}
                 <div class="mb-3">
                     <label class="form-label fw-bold">🔢 Cantidad / Unidades:</label>
-                    <input type="number" name="cantidad" class="form-control" min="1"
-                           placeholder="{{ necesidad.cantidad if necesidad else 'Ingresa el número de artículos' }}"
-                           required>
+                    <input type="number" name="cantidad" class="form-control" min="1" placeholder="Ingresa el número" required>
                 </div>
 
-                {# ── Fotos (máx. 3) ── #}
-                <div class="mb-4">
-                    <label class="form-label fw-bold">
-                        📸 Fotos de la Donación
-                        <span class="text-muted fw-normal">(opcional, máx. 3)</span>
-                    </label>
-                    <div class="fotos-zona" onclick="document.getElementById('inputFotos').click()">
-                        <div style="font-size:2rem;">📷</div>
-                        <p class="mt-1">Haz clic para agregar fotos de lo que vas a donar</p>
-                        <p><small>JPG, PNG — Máximo 3 imágenes</small></p>
+                {# ── NUEVO: MÉTODOS DE PAGO SEGURO ── #}
+                <div class="mb-4 p-3 border rounded bg-light shadow-sm">
+                    <label class="form-label fw-bold text-dark"><i class="fas fa-credit-card"></i> Datos de Pago Seguro</label>
+                    
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" id="credito" value="credito" checked>
+                            <label class="form-check-label" for="credito">Crédito</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="metodo_pago" id="debito" value="debito">
+                            <label class="form-check-label" for="debito">Débito</label>
+                        </div>
                     </div>
-                    <input type="file" id="inputFotos" name="fotos_donacion" 
-                                            accept="image/jpeg,image/png" style="display:none;" 
-                                            onchange="previsualizarFotos(this)">
-                    <div class="fotos-preview" id="preview-fotos"></div>
-                    <div id="msg-fotos" class="form-text text-danger" style="display:none;">
-                        Máximo 1 foto permitida.
+
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <input type="text" name="num_tarjeta" class="form-control" placeholder="0000 0000 0000 0000" maxlength="16" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="text" name="expiracion" class="form-control" placeholder="MM/AA" maxlength="5" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="password" name="cvv" class="form-control" placeholder="CVV" maxlength="3" required>
+                        </div>
                     </div>
+                    <div class="form-text mt-2"><i class="fas fa-lock text-success"></i> Transacción cifrada y protegida.</div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">
-                    {% if necesidad %}🤝 CONFIRMAR AYUDA AHORA{% else %}🚀 PUBLICAR MI DONACIÓN{% endif %}
+                <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-lg py-3">
+                    <i class="fas fa-lock"></i> {% if necesidad %}CONFIRMAR PAGO DE AYUDA{% else %}PROCESAR DONACIÓN SEGURA{% endif %}
                 </button>
             </form>
 
@@ -218,6 +214,11 @@
 
 {% block scripts %}
 <script>
+    function toggleTipoDonacion(valor) {
+        document.getElementById('campos-monetarios').style.display = valor === 'monetario' ? 'block' : 'none';
+        document.getElementById('campos-fisicos').style.display = valor === 'monetario' ? 'none' : 'block';
+    }
+    
     function mostrarDescripcionFundacion(select) {
         const opcion = select.options[select.selectedIndex];
         const desc   = opcion.getAttribute('data-desc');

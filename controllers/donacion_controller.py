@@ -194,6 +194,11 @@ class DonacionController:
             necesidad_prellenada = self.modelo.obtener_necesidad_por_id(necesidad_id)
 
         from database.db import get_connection
+        from flask import current_app, render_template, flash, redirect, url_for
+        import os
+        from werkzeug.utils import secure_filename
+        import requests
+
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -208,95 +213,73 @@ class DonacionController:
 
         if request.method == "POST":
             donador_id = session["usuario_id"]
-            categoria_id = request.form.get("categoria_id")
-            cantidad = request.form.get("cantidad")
+            tipo_donacion = request.form.get("tipo_donacion", "fisico")
+            fundacion_id = request.form.get("fundacion_id")
             descripcion = request.form.get("descripcion")
 
-           # Reemplaza la lógica de guardado actual con esto:
-            import os
-            from flask import current_app
-            from werkzeug.utils import secure_filename
+            if not fundacion_id:
+                flash("Debes seleccionar una fundación destino.", "danger")
+                categorias = self.modelo.obtener_categorias()
+                return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
 
-            if fotos_lista:
-                # Obtenemos solo el primer archivo
-                primer_archivo = fotos_lista[0]
-                
-                # Verificamos que realmente sea un archivo
-                if primer_archivo and primer_archivo.filename != '':
-                    nombre_foto = secure_filename(primer_archivo.filename)
-                    
-                    # Ruta absoluta
-                    directorio_static = os.path.join(current_app.root_path, 'static')
-                    carpeta_destino = os.path.join(directorio_static, 'img', 'donaciones')
-                    
-                    # Puntos de control (DEBUG)
-                    print(f"DEBUG: Carpeta destino verificada: {carpeta_destino}")
-                    print(f"DEBUG: ¿Existe la carpeta?: {os.path.exists(carpeta_destino)}")
-                    
-                    if not os.path.exists(carpeta_destino):
-                        os.makedirs(carpeta_destino, exist_ok=True)
-                        
-                    ruta_destino = os.path.join(carpeta_destino, nombre_foto)
-                    
-                    print(f"DEBUG: Intentando guardar en: {ruta_destino}")
-                    print(f"DEBUG: Guardando en ruta absoluta: {os.path.abspath(ruta_destino)}")
-                    
-                    primer_archivo.save(ruta_destino)
-                    
-                    # ¡IMPORTANTE! Verificamos si realmente se creó el archivo
-                    if os.path.exists(ruta_destino):
-                        print("DEBUG: ¡ÉXITO! El archivo SÍ se creó físicamente.")
-                    else:
-                        print("DEBUG: ¡ERROR! El archivo NO aparece en el disco.")
-                    
-                    # Guardamos en BD solo el nombre del archivo
-                    nombre_foto_bd = nombre_foto
+            # ── FLUJO MONETARIO ──
+            if tipo_donacion == "monetario":
+                monto = request.form.get("monto", 0)
+                referencia = request.form.get("referencia", "")
+                exito = self.modelo.registrar_donacion_monetaria(donador_id, fundacion_id, monto, descripcion, referencia)
+                if exito:
+                    flash("💳 ¡Gracias! Tu donación monetaria ha sido registrada.", "success")
+                    return redirect(url_for("home_donador"))
                 else:
-                    nombre_foto_bd = None
-            else:
-                nombre_foto_bd = None
-                
-            if necesidad_prellenada:
-                fundacion_id = necesidad_prellenada["fundacion_id"]
-                exito = self.modelo.registrar_donacion_con_necesidad(
-                    donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto_bd
-                )
-            else:
-                fundacion_id = request.form.get("fundacion_id")
-                if not fundacion_id:
-                    flash("Debes seleccionar una fundación destino.", "danger")
-                    categorias = self.modelo.obtener_categorias()
-                    return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
-                exito = self.modelo.registrar_donacion(donador_id, fundacion_id, categoria_id, cantidad, descripcion, nombre_foto_bd)
+                    flash("❌ Error al registrar la donación monetaria.", "danger")
 
-            if exito:
-                try:
+            # ── FLUJO FÍSICO ──
+            else:
+                categoria_id = request.form.get("categoria_id")
+                cantidad = request.form.get("cantidad")
+                fotos_lista = request.files.getlist("fotos") # Asegúrate de que este nombre coincida con tu HTML
+                nombre_foto_bd = None
+
+                if fotos_lista and fotos_lista[0].filename != '':
+                    archivo = fotos_lista[0]
+                    nombre_foto = secure_filename(archivo.filename)
+                    carpeta_destino = os.path.join(current_app.root_path, 'static', 'img', 'donaciones')
+                    os.makedirs(carpeta_destino, exist_ok=True)
+                    ruta_destino = os.path.join(carpeta_destino, nombre_foto)
+                    archivo.save(ruta_destino)
+                    nombre_foto_bd = nombre_foto
+
+                if necesidad_prellenada:
+                    exito = self.modelo.registrar_donacion_con_necesidad(
+                        donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto_bd
+                    )
+                else:
+                    exito = self.modelo.registrar_donacion(donador_id, fundacion_id, categoria_id, cantidad, descripcion, nombre_foto_bd)
+
+                if exito:
+                    # Actualizar necesidad si aplica
                     if necesidad_prellenada and "id" in necesidad_prellenada:
                         conn = get_connection()
                         cursor = conn.cursor()
-                        cursor.execute("UPDATE necesidades SET estado = 'completada' WHERE id = %s", (necesidad_prellenada["id"],))
+                        cursor.execute("UPDATE necesidades SET estado = 'gestionada' WHERE id = %s", (necesidad_prellenada["id"],))
                         conn.commit()
                         conn.close()
 
-                    import requests
-                    datos_correo = {
-                        "destinatario": session.get("correo", "usuario@ejemplo.com"),
-                        "nombreFundacion": "Red Solidaria",
-                        "estado": "DONACION_REGISTRADA"
-                    }
-                    requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=3)
-                except Exception as e:
-                    print(f"⚠️ Error al finalizar el proceso: {e}")
+                    # Notificación
+                    try:
+                        datos_correo = {"destinatario": session.get("correo", "usuario@ejemplo.com"), "nombreFundacion": "Red Solidaria", "estado": "DONACION_REGISTRADA"}
+                        requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=3)
+                    except:
+                        pass
 
-                flash("🎉 ¡Gracias! Tu donación ha sido registrada exitosamente.", "success")
-                return redirect(url_for("home_donador"))
-            else:
-                flash("❌ Hubo un problema al registrar tu donación.", "danger")
+                    flash("🎉 ¡Gracias! Tu donación ha sido registrada.", "success")
+                    return redirect(url_for("home_donador"))
+                else:
+                    flash("❌ Hubo un problema al registrar tu donación física.", "danger")
 
         categorias = self.modelo.obtener_categorias()
         return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
-    
-    
+        
     def home_donador_view(self, session, request):
         if "usuario_id" not in session:
             return redirect(url_for("login"))

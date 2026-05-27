@@ -2,6 +2,9 @@ from database.db import get_connection
 import mysql.connector
 
 class DonacionModel:
+    print("Cargando DonacionModel...")
+    def __init__(self, mysql=None):
+        self.mysql = mysql
 
     # =========================================================================
     # MÉTODOS DE DONACIONES (HISTORIAL Y REGISTRO)
@@ -504,3 +507,59 @@ class DonacionModel:
             return False
         finally:
             conn.close()
+            
+# =========================================================================
+    # DONACIONES MONETARIAS (POR IMPLEMENTAR)
+# =========================================================================   
+
+    def registrar_donacion_monetaria(self, donador_id, fundacion_id, monto, descripcion, referencia=None):
+            try:
+                cursor = self.mysql.connection.cursor()
+                f_id = int(fundacion_id) if fundacion_id else 0
+                
+                cursor.execute("""
+                    INSERT INTO donaciones 
+                    (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, tipo, estado, fecha)
+                    VALUES (%s, %s, 1, %s, %s, 'monetario', 'gestionada', NOW())
+                """, (donador_id, f_id, monto, descripcion))
+                
+                donacion_id = cursor.lastrowid
+                
+                cursor.execute("""
+                    INSERT INTO transacciones 
+                    (donacion_id, usuario_id, fundacion_id, monto, referencia, estado, fecha)
+                    VALUES (%s, %s, %s, %s, %s, 'aprobado', NOW())
+                """, (donacion_id, donador_id, f_id, monto, referencia))
+                
+                self.mysql.connection.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"Error en donación monetaria: {e}")
+                return False
+
+    def get_historial_monetario(self, usuario_id):
+            """Trae el historial de donaciones monetarias usando la conexión de Flask."""
+            try:
+                # Usamos self.mysql.connection configurado en app.py
+                cursor = self.mysql.connection.cursor(dictionary=True)
+                
+                cursor.execute("""
+                    SELECT d.id, d.descripcion, d.fecha, d.estado AS estado_donacion,
+                        fun.nombre AS fundacion_nombre,
+                        t.monto, t.pasarela, t.referencia, t.estado AS estado_transaccion
+                    FROM donaciones d
+                    LEFT JOIN fundaciones fun ON d.fundacion_id = fun.id
+                    LEFT JOIN transacciones t ON t.donacion_id = d.id
+                    WHERE d.usuario_id = %s AND d.tipo = 'monetario'
+                    ORDER BY d.fecha DESC
+                """, (usuario_id,))
+                
+                resultados = cursor.fetchall()
+                cursor.close()
+                return resultados
+            except Exception as e:
+                print(f"Error en historial monetario: {e}")
+                return []
+        
+             

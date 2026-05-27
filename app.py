@@ -45,11 +45,12 @@ mail = Mail(app)
 
 # 1. Inicialización de Modelos
 soporte_model = SoporteModel(mysql)
-donacion_model = DonacionModel() # Sin mysql dentro, para evitar el TypeError
+# Busca esta línea y cámbiala por:
+donacion_model = DonacionModel(mysql)
 
 # 2. Inicialización de Controladores
 auth = AuthController()
-usuario_ctrl = UsuarioController()
+usuario_ctrl = UsuarioController(donacion_model)
 donacion_ctrl = DonacionController(donacion_model)
 soporte_controller = SoporteController(soporte_model, mail)
 
@@ -99,6 +100,12 @@ def serializar_datos(obj):
 @app.route('/gestionar_donacion', methods=['POST'])
 def gestionar_donacion():
     return donacion_ctrl.gestionar_donacion_accion()
+
+@app.route("/donar/monetario", methods=["GET", "POST"])
+def donar_monetario():
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return donacion_ctrl.publicar_donacion_view(request, session, tipo="monetario")
 
 # ================= FUNCIONES DE COMUNICACIÓN CON JAVA =================
 

@@ -1,13 +1,14 @@
 __all__ = ["UsuarioController"]
-from models.usuario_model import UsuarioModel, Usuario
+from models.usuario_model import UsuarioModel
+from flask import render_template, request, redirect, url_for, session, current_app
 import os
-from werkzeug.utils import secure_filename
-from flask import render_template, request, redirect, url_for, session, flash
 
 class UsuarioController:
 
-    def __init__(self):
+    def __init__(self, donacion_model=None):
+        from models.usuario_model import UsuarioModel
         self.modelo = UsuarioModel()
+        self.donacion_model = donacion_model
 
     def ver_perfil_view(self):
         from flask import session, render_template, redirect, url_for
@@ -289,14 +290,8 @@ class UsuarioController:
             fundaciones_activas=fundaciones_activas
         )
         
-    def home_fundacion_view(self):
-        from flask import session, redirect, url_for, render_template, request, flash, current_app
-        from models.donacion_model import DonacionModel
-        import requests
-        import json
-        import os
-        from app import serializar_datos
 
+    def home_fundacion_view(self):
         if "rol" not in session:
             return redirect(url_for("login"))
         if int(session["rol"]) != 3:
@@ -315,12 +310,14 @@ class UsuarioController:
                 session['foto_perfil'] = fundacion['foto_perfil']
 
         fundacion_id = fundacion["id"]
+        
+        # CORRECCIÓN: Usamos self.donacion_model
+        donaciones_monetarias = self.donacion_model.get_historial_monetario(usuario_id)
+        
         query = request.args.get('q', '')
         donante = request.args.get('donante', '')
-        accion = request.args.get('accion')
-        correo_reporte = request.args.get('correo_reporte')
         
-        # ... (filtros de categoría y estado se mantienen igual) ...
+        # Filtros
         categoria_raw = request.args.get('categoria', '')
         categoria_filtro = categoria_raw.lower().strip() if categoria_raw and categoria_raw.lower() != 'todas' else categoria_raw
         estado_raw = request.args.get('est', '').lower()
@@ -328,23 +325,24 @@ class UsuarioController:
         elif estado_raw in ['recibida', 'recibido', 'recibidos']: estado_filtro = 'recibido'
         else: estado_filtro = estado_raw
 
-        donacion_model = DonacionModel()
-        mis_donaciones = donacion_model.obtener_donaciones_por_fundacion(
+        # CORRECCIÓN: Usamos self.donacion_model
+        mis_donaciones = self.donacion_model.obtener_donaciones_por_fundacion(
             fundacion_id, q=query, donante=donante, categoria=categoria_filtro, estado=estado_filtro
         )
 
-        # --- CORRECCIÓN: VALIDACIÓN DE EXISTENCIA DE FOTOS ---
+        # Validación de fotos
         ruta_fotos = os.path.join(current_app.root_path, 'static', 'img', 'donaciones')
         for d in mis_donaciones:
             nombre_foto = d.get('fotos')
-            # Verificamos si existe el nombre y si el archivo realmente está en la carpeta
             if nombre_foto and os.path.exists(os.path.join(ruta_fotos, nombre_foto)):
                 d['foto_existe'] = True
             else:
                 d['foto_existe'] = False
-        # ----------------------------------------------------
         
-        stats_db = donacion_model.obtener_estadisticas_fundacion(fundacion_id)
+        # CORRECCIÓN: Usamos self.donacion_model
+        stats_db = self.donacion_model.obtener_estadisticas_fundacion(fundacion_id)
+        
+        total_monetarias = len(donaciones_monetarias)
         stats = {
             'pendientes': stats_db.get('pendientes', 0) if stats_db else 0,
             'recibidas': stats_db.get('recibidas', 0) if stats_db else 0,
@@ -352,21 +350,19 @@ class UsuarioController:
             'alimentos': stats_db.get('alimentos', 0) if stats_db else 0,
             'ropa': stats_db.get('ropa', 0) if stats_db else 0,
             'otros': stats_db.get('otros', 0) if stats_db else 0,
-            'total': stats_db.get('total', 0) if stats_db else 0
+            'total': stats_db.get('total', 0) if stats_db else 0,
+            'monetarias': total_monetarias
         }
 
-        # ... (lógica de reporte Java se mantiene igual) ...
-        if accion == 'reporte':
-            # ... (código de reporte que tenías antes) ...
-            pass 
-            
-        solicitudes_ayuda = donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
+        # CORRECCIÓN: Usamos self.donacion_model
+        solicitudes_ayuda = self.donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
         motivos_eliminacion = self.modelo.obtener_motivos_eliminacion()
 
         return render_template(
             "home_fundacion.html",
             fundacion=fundacion,
             donaciones=mis_donaciones,
+            donaciones_monetarias=donaciones_monetarias,
             solicitudes_ayuda=solicitudes_ayuda,
             motivos_eliminacion=motivos_eliminacion,
             stats=stats,
@@ -392,19 +388,17 @@ class UsuarioController:
 
         if request.method == "POST":
             fundacion_id = fundacion_datos['id'] if fundacion_datos else usuario_id
-            categoria    = request.form.get("categoria")
+            categoria = request.form.get("categoria")
             text_cantidad = request.form.get("cantidad")
-            cantidad     = int(text_cantidad) if text_cantidad and text_cantidad.isdigit() else 0
-            urgencia     = request.form.get("urgencia")
+            cantidad = int(text_cantidad) if text_cantidad and text_cantidad.isdigit() else 0
+            urgencia = request.form.get("urgencia")
             fecha_limite = request.form.get("fecha_limite")
-            ubicacion    = request.form.get("ubicacion")
-            telefono     = request.form.get("telefono")
-            descripcion  = request.form.get("descripcion")
+            ubicacion = request.form.get("ubicacion")
+            telefono = request.form.get("telefono")
+            descripcion = request.form.get("descripcion")
             
-            # Obtenemos el correo desde los datos de la fundación (perfil)
             correo_contacto = fundacion_datos.get('correo') if fundacion_datos else ''
 
-            # Enviamos el correo_contacto al modelo
             exito = modelo_donacion.crear_necesidad(
                 fundacion_id, categoria, cantidad, urgencia,
                 fecha_limite, ubicacion, telefono, descripcion, correo_contacto
@@ -418,7 +412,7 @@ class UsuarioController:
                 return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
 
         return render_template("solicitar_ayuda.html", fundacion=fundacion_datos)
-    
+
     
     def editar_solicitud_view(self, id):
         from flask import session, redirect, url_for, request, flash, render_template

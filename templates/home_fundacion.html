@@ -149,168 +149,118 @@
 
     <div class="row mb-4">
 
-       {# ══ PANEL LATERAL ══ #}
-        <div class="col-lg-3">
-            <div class="perfil mb-4">
 
-                {# ── Foto de perfil ── #}
-                <div class="text-center mb-3">
-                    {% if fundacion.foto_perfil %}
-                    <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}"
-                        class="foto-perfil-lateral" alt="Foto fundación">
-                {% else %}
-                    <div class="avatar-inicial-lateral">
-                        {{ fundacion.nombre[0]|upper }}
-                    </div>
-                {% endif %}
-                </div>
-
-                <h3 class="fw-bold text-center mb-2">{{ fundacion.nombre }}</h3>
-                {# NOTA: Aquí ya no hay ninguna línea de encargado, pasa directo al badge de abajo #}
-                    </div>
-
-            {# ── Badge estado ── #}
-            {% if fundacion.estado_validacion == 'aprobado' %}
-                <span class="badge bg-success d-block text-center mb-3">✅ Fundación Activa</span>
-            {% elif fundacion.estado_validacion == 'pendiente' %}
-                <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
-            {% elif fundacion.estado_validacion == 'rechazado' %}
-                <span class="badge bg-danger d-block text-center mb-3">❌ Fundación Rechazada</span>
+{# ══ PANEL LATERAL ══ #}
+<div class="col-lg-3">
+    {# ── Perfil y Stats ── #}
+    <div class="perfil mb-4">
+        <div class="text-center mb-3">
+            {% if fundacion.foto_perfil %}
+                <img src="{{ url_for('static', filename='img/' + fundacion.foto_perfil) }}" class="foto-perfil-lateral" alt="Foto fundación">
+            {% else %}
+                <div class="avatar-inicial-lateral">{{ fundacion.nombre[0]|upper }}</div>
             {% endif %}
-
-            {# ══ STATS DE DONACIONES + TRANSACCIONES ══ #}
-            <div class="stats-lateral">
-                <div class="stats-lateral-header">📊 Mis Donaciones</div>
-
-                <div class="stats-item">
-                    <span class="label">⏳ Pendientes</span>
-                    <span class="stats-num num-pendiente">{{ stats.pendientes }}</span>
-                </div>
-                <div class="stats-item">
-                    <span class="label">✅ Recibidas</span>
-                    <span class="stats-num num-recibido">{{ stats.recibidas }}</span>
-                </div>
-                <div class="stats-item">
-                    <span class="label">❌ Rechazadas</span>
-                    <span class="stats-num num-rechazado">{{ stats.rechazadas }}</span>
-                </div>
-
-                <div class="stats-lateral-header" style="background:linear-gradient(135deg,#2575fc,#43c98a);">📦 Por Categoría</div>
-
-                <div class="stats-item">
-                    <span class="label">🥫 Alimentos</span>
-                    <span class="stats-num num-alimentos">{{ stats.alimentos }}</span>
-                </div>
-                <div class="stats-item">
-                    <span class="label">👕 Ropa</span>
-                    <span class="stats-num num-ropa">{{ stats.ropa }}</span>
-                </div>
-                <div class="stats-item">
-                    <span class="label">📦 Otros</span>
-                    <span class="stats-num num-otros">{{ stats.otros }}</span>
-                </div>
-
-                <div class="stats-lateral-header" style="background:linear-gradient(135deg,#f7971e,#ffd200);">
-                    💳 Transacciones
-                </div>
-                <div class="stats-item">
-                    <span class="label">💰 Económicas</span>
-                    <span class="stats-num num-transaccion">0</span>
-                </div>
-                
-                <div class="stats-item" style="background:#f8f9fa;">
-                    <span class="label fw-bold">🔢 Total donaciones</span>
-                    <span class="stats-num num-total">{{ stats.total }}</span>
-                </div>
-            </div>
-            
         </div>
-
-        {# ══ CONTENIDO PRINCIPAL ══ #}
-        <div class="col-lg-9">
-
-            {# ══ SECCIÓN SOLICITUDES DE AYUDA (PANEL FUNDACIÓN) — VERSION CARRUSEL ══ #}
-<div class="panel-section mb-5 shadow-sm border-0"
-     style="background:#fffdf0;border-left:5px solid #ffc107 !important;border-radius:15px;padding:25px;">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h3 class="panel-title m-0">
-            <i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda
-        </h3>
-        <a href="{{ url_for('solicitudes_fundacion_completo') }}" class="btn btn-warning btn-sm fw-bold shadow-sm" style="border-radius: 20px; padding: 6px 15px;">
-            🔗 Ver todas mis solicitudes
-        </a>
+        <h3 class="fw-bold text-center mb-2">{{ fundacion.nombre }}</h3>
     </div>
 
-    <div class="contenedor-solicitudes-carrusel" style="display: flex; gap: 20px; overflow-x: auto; scroll-behavior: smooth; padding: 10px 5px 15px 5px; scrollbar-width: thin;">
-        {% for n in solicitudes_ayuda %}
-            {# Ocultar las que tengan borrado lógico #}
-            {% if n.estado != 'eliminada' %}
-            <div class="tarjeta-carrusel-item" style="flex: 0 0 320px; transition: transform 0.2s ease-in-out;">
-                <div class="card card-necesidad h-100 border-0 shadow-sm d-flex flex-column justify-content-between">
-                    <div class="card-body p-4 d-flex flex-column justify-content-between">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <small class="text-muted">
-                                    <i class="far fa-calendar-alt"></i> Publicado: {{ n.fecha_registro if n.fecha_registro else 'Reciente' }}
-                                </small>
-                                
-                                {% if n.estado == 'pendiente' %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-                                {% elif n.estado == 'asignada' %}
-                                    <span class="badge bg-primary">Asignada</span>
-                                {% else %}
-                                    <span class="badge bg-success">Completada</span>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="mb-3">
-                                <p class="card-text text-muted small line-clamp-3" style="line-height:1.5; min-height: 54px;">
-                                    {{ n.descripcion }}
-                                </p>
-                            </div>
-                        </div>
+    {# ── Badge estado ── #}
+    {% if fundacion.estado_validacion == 'aprobado' %}
+        <span class="badge bg-success d-block text-center mb-3">✅ Fundación Activa</span>
+    {% elif fundacion.estado_validacion == 'pendiente' %}
+        <span class="badge bg-warning text-dark d-block text-center mb-3">⏳ Validación Pendiente</span>
+    {% elif fundacion.estado_validacion == 'rechazado' %}
+        <span class="badge bg-danger d-block text-center mb-3">❌ Fundación Rechazada</span>
+    {% endif %}
 
-                        <div class="row pt-2 border-top mt-auto mb-3">
-                            <div class="col-6">
-                                <small class="text-primary d-block fw-bold">📦 Cantidad:</small>
-                                <span class="fw-bold text-dark">{{ n.cantidad }}</span>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-info d-block fw-bold">🏷️ Categoría:</small>
-                                <span class="badge bg-light text-dark border text-truncate d-block">{{ n.nombre_categoria if n.nombre_categoria else 'General' }}</span>
-                            </div>
-                        </div>
+    {# ══ STATS DE DONACIONES ══ #}
+    <div class="stats-lateral mb-4">
+        <div class="stats-lateral-header">📊 Mis Donaciones</div>
+        <div class="stats-item"><span class="label">⏳ Pendientes</span><span class="stats-num num-pendiente">{{ stats.pendientes }}</span></div>
+        <div class="stats-item"><span class="label">✅ Recibidas</span><span class="stats-num num-recibido">{{ stats.recibidas }}</span></div>
+        <div class="stats-item"><span class="label">❌ Rechazadas</span><span class="stats-num num-rechazado">{{ stats.rechazadas }}</span></div>
 
-                        {# ── NUEVOS BOTONES DE ACCIÓN CONDICIONALES ── #}
-                        <div class="d-flex gap-2 border-top pt-3">
-                            {% if n.estado == 'pendiente' %}
-                                {# Permite editar o eliminar solo si no tiene donante vinculado #}
-                                <a href="{{ url_for('editar_necesidad_ruta', id=n.id) }}" class="btn btn-sm btn-outline-warning fw-bold flex-grow-1 py-2" style="border-radius: 8px;">
-                                    ✏️ Editar
-                                </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger fw-bold flex-grow-1 py-2" style="border-radius: 8px;" onclick="confirmarEliminar('{{ n.id }}')">
-                                    🗑️ Eliminar
-                                </button>
-                            {% else %}
-                                {# Si ya fue asignada o completada por un donante se bloquea #}
-                                <div class="alert alert-success m-0 p-2 text-center w-100 fw-bold small" style="border-radius: 8px; font-size: 0.75rem; background-color: #d1e7dd; color: #0f5132; border: none;">
-                                    🤝 ¡Ayuda Vinculada!
-                                </div>
-                            {% endif %}
-                        </div>
+        <div class="stats-lateral-header" style="background:linear-gradient(135deg,#2575fc,#43c98a);">📦 Por Categoría</div>
+        <div class="stats-item"><span class="label">🥫 Alimentos</span><span class="stats-num num-alimentos">{{ stats.alimentos }}</span></div>
+        <div class="stats-item"><span class="label">👕 Ropa</span><span class="stats-num num-ropa">{{ stats.ropa }}</span></div>
+        <div class="stats-item"><span class="label">📦 Otros</span><span class="stats-num num-otros">{{ stats.otros }}</span></div>
 
-                    </div>
-                </div>
+        <div class="stats-lateral-header" style="background:linear-gradient(135deg,#f7971e,#ffd200);">💳 Transacciones</div>
+        <div class="stats-item"><span class="label">💰 Económicas</span><span class="stats-num num-transaccion">{{ stats.monetarias }}</span></div>
+        <div class="stats-item" style="background:#f8f9fa;"><span class="label fw-bold">🔢 Total donaciones</span><span class="stats-num num-total">{{ stats.total + stats.monetarias }}</span></div>
+    </div>
+
+    {# ── HISTORIAL MONETARIO (Ahora dentro de la columna de 3) ── #}
+    <div class="panel-section shadow-sm border-0" style="background:#f8f9fa; border-radius:15px; padding:15px;">
+        <h5 class="panel-title mb-3" style="font-size: 0.9rem;">💳 Donaciones Monetarias Recibidas</h5>
+        {% if donaciones_monetarias %}
+            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle" style="font-size: 0.8rem;">
+                    <thead><tr><th>Donante</th><th>Monto</th></tr></thead>
+                    <tbody>
+                        {% for t in donaciones_monetarias %}
+                        <tr>
+                            <td>{{ t.nombre_donante }}</td>
+                            <td><strong>${{ "{:,.0f}".format(t.monto) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endif %}
         {% else %}
-        <div class="w-100 text-center py-4">
-            <p class="text-muted italic">Aún no has publicado ninguna solicitud de ayuda.</p>
-        </div>
-        {% endfor %}
+            <p class="text-muted small text-center">No hay registros aún.</p>
+        {% endif %}
     </div>
 </div>
+
+{# ══ CONTENIDO PRINCIPAL (Columna de 9) ══ #}
+<div class="col-lg-9">
+    {# ══ SECCIÓN SOLICITUDES DE AYUDA ══ #}
+    <div class="panel-section mb-5 shadow-sm border-0" style="background:#fffdf0; border-left:5px solid #ffc107 !important; border-radius:15px; padding:25px;">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+            <h3 class="panel-title m-0"><i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda</h3>
+            <a href="{{ url_for('solicitudes_fundacion_completo') }}" class="btn btn-warning btn-sm fw-bold shadow-sm" style="border-radius: 20px; padding: 6px 15px;">🔗 Ver todas</a>
+        </div>
+        
+        <div class="contenedor-solicitudes-carrusel" style="display: flex; gap: 20px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth;">
+            {% for n in solicitudes_ayuda %}
+                {% if n.estado != 'eliminada' %}
+                    {# Usamos el campo 'tipo' de tu base de datos para la lógica #}
+                    {% set es_monetaria = (n.tipo == 'monetario') %}
+                    
+                    <div class="tarjeta-carrusel-item" style="flex: 0 0 320px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                        <div class="card card-necesidad h-100 border-0 shadow-sm" style="{% if es_monetaria %}border-left: 5px solid #28a745 !important;{% endif %} border-radius: 12px;">
+                            <div class="card-body p-4 d-flex flex-column">
+                                <div class="d-flex justify-content-between mb-3">
+                                    {# CORREGIDO: Usamos el nombre real del campo de la BD: n.fecha #}
+                                    <small class="text-muted"><i class="far fa-calendar-alt"></i> {{ n.fecha.strftime('%d/%m/%Y') if n.fecha else 'N/A' }}</small>
+                                    <span class="badge {% if n.estado == 'disponible' %}bg-warning{% else %}bg-success{% endif %}">{{ n.estado|capitalize }}</span>
+                                </div>
+                                
+                                <h6 class="fw-bold mb-2">
+                                    {% if es_monetaria %}
+                                        <i class="fas fa-bullseye text-success me-1"></i> Campaña Monetaria
+                                    {% else %}
+                                        <i class="fas fa-box text-primary me-1"></i> Recurso Físico
+                                    {% endif %}
+                                </h6>
+
+                                <p class="card-text small mb-4" style="height: 3em; overflow: hidden;">{{ n.descripcion }}</p>
+                                
+                                <div class="mt-auto border-top pt-3">
+                                    <span class="d-block fw-bold small text-primary">📦 Cantidad: {{ n.cantidad }}</span>
+                                    <span class="badge bg-light text-dark border">{{ n.nombre_categoria or 'General' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">Aún no has publicado ninguna solicitud.</p>
+            {% endfor %}
+        </div>
+    </div>
+
 
             {# ── Rastrear y Reportar ── #}
             <div class="panel-section mb-4">
