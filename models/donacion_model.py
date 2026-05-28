@@ -214,7 +214,8 @@ class DonacionModel:
         try:
             cursor = conn.cursor(dictionary=True)
             query = """
-                SELECT d.*, c.nombre AS categoria_nombre, fun.nombre AS fundacion_nombre
+                SELECT d.*, c.nombre AS categoria_nombre, fun.nombre AS fundacion_nombre,
+                d.tipo, d.estado_donante, d.fecha, d.descripcion
                 FROM donaciones d
                 LEFT JOIN categorias c ON d.categoria_id = c.id
                 LEFT JOIN fundaciones fun ON d.fundacion_id = fun.id
@@ -512,54 +513,98 @@ class DonacionModel:
     # DONACIONES MONETARIAS (POR IMPLEMENTAR)
 # =========================================================================   
 
-    def registrar_donacion_monetaria(self, donador_id, fundacion_id, monto, descripcion, referencia=None):
-            try:
-                cursor = self.mysql.connection.cursor()
-                f_id = int(fundacion_id) if fundacion_id else 0
-                
-                cursor.execute("""
-                    INSERT INTO donaciones 
-                    (usuario_id, fundacion_id, categoria_id, cantidad, descripcion, tipo, estado, fecha)
-                    VALUES (%s, %s, 1, %s, %s, 'monetario', 'gestionada', NOW())
-                """, (donador_id, f_id, monto, descripcion))
-                
-                donacion_id = cursor.lastrowid
-                
-                cursor.execute("""
-                    INSERT INTO transacciones 
-                    (donacion_id, usuario_id, fundacion_id, monto, referencia, estado, fecha)
-                    VALUES (%s, %s, %s, %s, %s, 'aprobado', NOW())
-                """, (donacion_id, donador_id, f_id, monto, referencia))
-                
-                self.mysql.connection.commit()
-                cursor.close()
-                return True
-            except Exception as e:
-                print(f"Error en donación monetaria: {e}")
-                return False
+    def registrar_donacion_monetaria(self, donador_id, fundacion_id, categoria_id, monto, descripcion, referencia=None):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            
+            # Ahora usa el categoria_id que viene del controlador (el 5)
+            cursor.execute("""
+                INSERT INTO donaciones 
+                (usuario_id, fundacion_id, categoria_id, cantidad, descripcion,
+                tipo, estado_donante, fecha)
+                VALUES (%s, %s, %s, %s, %s, 'monetario', 'gestionada', NOW())
+            """, (donador_id, fundacion_id, categoria_id, monto, descripcion))
+            
+            donacion_id = cursor.lastrowid
+            
+            cursor.execute("""
+                INSERT INTO transacciones
+                (donacion_id, usuario_id, fundacion_id, monto, referencia, estado, fecha)
+                VALUES (%s, %s, %s, %s, %s, 'aprobado', NOW())
+            """, (donacion_id, donador_id, fundacion_id, monto, referencia or ''))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"❌ Error al registrar donación monetaria: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
 
-    def get_historial_monetario(self, usuario_id):
-            """Trae el historial de donaciones monetarias usando la conexión de Flask."""
-            try:
-                # Usamos self.mysql.connection configurado en app.py
-                cursor = self.mysql.connection.cursor(dictionary=True)
-                
+    def get_historial_monetario(self, usuario_id_o_fundacion_id, es_fundacion=False):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            if es_fundacion:
+                # Para fundación: busca por fundacion_id
                 cursor.execute("""
-                    SELECT d.id, d.descripcion, d.fecha, d.estado AS estado_donacion,
+                    SELECT d.id, d.descripcion, d.fecha, d.cantidad AS monto,
+                        u.nombre AS nombre_donante,
+                        t.referencia, t.estado AS estado_transaccion,
+                        t.monto AS monto_real
+                    FROM donaciones d
+                    LEFT JOIN usuarios u    ON d.usuario_id  = u.id
+                    LEFT JOIN transacciones t ON t.donacion_id = d.id
+                    WHERE d.fundacion_id = %s AND d.tipo = 'monetario'
+                    ORDER BY d.fecha DESC
+                """, (usuario_id_o_fundacion_id,))
+            else:
+                # Para donante: busca por usuario_id
+                cursor.execute("""
+                    SELECT d.id, d.descripcion, d.fecha, d.cantidad AS monto,
                         fun.nombre AS fundacion_nombre,
-                        t.monto, t.pasarela, t.referencia, t.estado AS estado_transaccion
+                        t.referencia, t.estado AS estado_transaccion,
+                        t.monto AS monto_real
                     FROM donaciones d
                     LEFT JOIN fundaciones fun ON d.fundacion_id = fun.id
-                    LEFT JOIN transacciones t ON t.donacion_id = d.id
+                    LEFT JOIN transacciones t  ON t.donacion_id  = d.id
                     WHERE d.usuario_id = %s AND d.tipo = 'monetario'
                     ORDER BY d.fecha DESC
-                """, (usuario_id,))
-                
-                resultados = cursor.fetchall()
-                cursor.close()
-                return resultados
-            except Exception as e:
-                print(f"Error en historial monetario: {e}")
-                return []
+                """, (usuario_id_o_fundacion_id,))
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"❌ Error en get_historial_monetario: {e}")
+            return []
+        finally:
+            if conn: conn.close()
+            
+    # ... (Tus otros métodos existentes como registrar_donacion_monetaria y get_historial_monetario)
+
+    def get_historial_monetario_detallado(self, fundacion_id):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Agregamos 'c.nombre AS nombre_categoria' y el JOIN
+            query = """
+                SELECT d.id, d.descripcion, d.fecha, d.cantidad AS monto,
+                       u.nombre AS nombre_donante, t.referencia, 
+                       t.estado AS estado_transaccion,
+                       c.nombre AS nombre_categoria
+                FROM donaciones d
+                LEFT JOIN usuarios u ON d.usuario_id = u.id
+                LEFT JOIN transacciones t ON t.donacion_id = d.id
+                LEFT JOIN categorias c ON d.categoria_id = c.id
+                WHERE d.fundacion_id = %s AND d.tipo = 'monetario'
+                ORDER BY d.fecha DESC
+            """
+            cursor.execute(query, (fundacion_id,))
+            return cursor.fetchall()
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return []
+        finally:
+            if conn: conn.close()
         
              

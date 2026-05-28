@@ -2,6 +2,8 @@ __all__ = ["UsuarioController"]
 from models.usuario_model import UsuarioModel
 from flask import render_template, request, redirect, url_for, session, current_app
 import os
+import mysql.connector
+from werkzeug.utils import secure_filename
 
 class UsuarioController:
 
@@ -208,87 +210,6 @@ class UsuarioController:
                 flash("Error al registrar. El correo puede estar en uso.", "danger")
                 return redirect(url_for("registro"))
         return render_template("registro.html")
-
-    def publicar_donacion_view(self, request, session, necesidad_id=None):
-        from flask import redirect, url_for, render_template, flash, current_app
-        from models.donacion_model import DonacionModel
-        import os
-        from werkzeug.utils import secure_filename
-
-        if "usuario_id" not in session:
-            return redirect(url_for("login"))
-
-        modelo = DonacionModel()
-        necesidad_prellenada = None
-        todas_las_categories = modelo.obtener_categorias()
-
-        if necesidad_id:
-            necesidad_prellenada = modelo.obtener_necesidad_por_id(necesidad_id)
-
-        fundaciones_activas = self.modelo.obtener_fundaciones_activas_con_descripcion()
-
-        if request.method == "POST":
-            donador_id = session["usuario_id"]
-            
-            # ══ FLUJO AUTOMÁTICO DESDE EL MODAL ══
-            if necesidad_id and necesidad_prellenada:
-                exito = modelo.registrar_donacion_con_necesidad(
-                    donador_id, necesidad_prellenada['fundacion_id'], necesidad_prellenada['categoria_id'],
-                    necesidad_prellenada['cantidad'], necesidad_prellenada['descripcion'], necesidad_id, None
-                )
-                
-                if exito:
-                    modelo.cambiar_estado_necesidad(necesidad_id, 'completada')
-                    flash("🎉 ¡Gracias! Tu ayuda ha sido registrada.", "success")
-                    return redirect(url_for("home_donador"))
-                else:
-                    flash("❌ Hubo un problema al procesar la donación.", "danger")
-                    return redirect(url_for("home_donador"))
-
-            # ══ FLUJO TRADICIONAL CORREGIDO ══
-            fundacion_id = request.form.get("fundacion_id")
-            categoria_id = request.form.get("categoria_id")
-            cantidad     = request.form.get("cantidad")
-            descripcion  = request.form.get("descripcion")
-
-            fotos_guardadas = []
-            archivos_fotos  = request.files.getlist("fotos_donacion")
-            
-            # RUTA ABSOLUTA CORREGIDA: Apunta siempre dentro de la carpeta del proyecto
-            carpeta_fotos = os.path.join(current_app.root_path, 'static', 'img', 'donaciones')
-            
-            if not os.path.exists(carpeta_fotos):
-                os.makedirs(carpeta_fotos)
-
-            for foto in archivos_fotos[:1]:  # Solo procesamos la primera foto para cumplir con el límite de 1
-                if foto and foto.filename != '':
-                    # Creamos un nombre único y seguro
-                    nombre_foto = secure_filename(f"don_{donador_id}_{foto.filename}")
-                    # Guardamos en la ruta absoluta
-                    ruta_guardado = os.path.join(carpeta_fotos, nombre_foto)
-                    foto.save(ruta_guardado)
-                    fotos_guardadas.append(nombre_foto)
-                    print(f"DEBUG: Foto guardada correctamente en: {ruta_guardado}")
-
-            fotos_str = ','.join(fotos_guardadas) if fotos_guardadas else None
-
-            exito = modelo.registrar_donacion(
-                donador_id, fundacion_id, categoria_id,
-                cantidad, descripcion, fotos_str
-            )
-
-            if exito:
-                flash("🎉 ¡Gracias! Tu ayuda ha sido registrada correctamente.", "success")
-                return redirect(url_for("home_donador"))
-            else:
-                flash("❌ Hubo un problema al procesar la donación.", "danger")
-
-        return render_template(
-            "donar.html",
-            necesidad=necesidad_prellenada,
-            categorias=todas_las_categories,
-            fundaciones_activas=fundaciones_activas
-        )
         
 
     def home_fundacion_view(self):
@@ -303,46 +224,42 @@ class UsuarioController:
         if not fundacion:
             return "Error: No se encontraron datos de la fundación."
 
-        if fundacion:
-            session['fundacion_nombre'] = fundacion.get('nombre_fundacion')
-            session['usuario_encargado'] = fundacion.get('nombre_encargado') 
-            if fundacion.get('foto_perfil'):
-                session['foto_perfil'] = fundacion['foto_perfil']
+        # Configurar sesión con datos de fundación
+        session['fundacion_nombre'] = fundacion.get('nombre_fundacion')
+        session['usuario_encargado'] = fundacion.get('nombre_encargado') 
+        if fundacion.get('foto_perfil'):
+            session['foto_perfil'] = fundacion['foto_perfil']
 
         fundacion_id = fundacion["id"]
         
-        # CORRECCIÓN: Usamos self.donacion_model
-        donaciones_monetarias = self.donacion_model.get_historial_monetario(usuario_id)
-        
+        # --- FILTROS ---
         query = request.args.get('q', '')
         donante = request.args.get('donante', '')
-        
-        # Filtros
         categoria_raw = request.args.get('categoria', '')
         categoria_filtro = categoria_raw.lower().strip() if categoria_raw and categoria_raw.lower() != 'todas' else categoria_raw
         estado_raw = request.args.get('est', '').lower()
+        
         if estado_raw in ['rechazada', 'rechazado', 'rechazados']: estado_filtro = 'rechazado'
         elif estado_raw in ['recibida', 'recibido', 'recibidos']: estado_filtro = 'recibido'
         else: estado_filtro = estado_raw
 
-        # CORRECCIÓN: Usamos self.donacion_model
+        # --- DATOS USANDO EL MODELO (Limpio y profesional) ---
         mis_donaciones = self.donacion_model.obtener_donaciones_por_fundacion(
             fundacion_id, q=query, donante=donante, categoria=categoria_filtro, estado=estado_filtro
         )
+        
+        # Nueva llamada limpia al modelo para monetarias
+        donaciones_monetarias = self.donacion_model.get_historial_monetario_detallado(fundacion_id)
+        solicitudes_ayuda = self.donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
+        stats_db = self.donacion_model.obtener_estadisticas_fundacion(fundacion_id)
+        motivos_eliminacion = self.modelo.obtener_motivos_eliminacion()
 
         # Validación de fotos
         ruta_fotos = os.path.join(current_app.root_path, 'static', 'img', 'donaciones')
         for d in mis_donaciones:
             nombre_foto = d.get('fotos')
-            if nombre_foto and os.path.exists(os.path.join(ruta_fotos, nombre_foto)):
-                d['foto_existe'] = True
-            else:
-                d['foto_existe'] = False
+            d['foto_existe'] = bool(nombre_foto and os.path.exists(os.path.join(ruta_fotos, nombre_foto)))
         
-        # CORRECCIÓN: Usamos self.donacion_model
-        stats_db = self.donacion_model.obtener_estadisticas_fundacion(fundacion_id)
-        
-        total_monetarias = len(donaciones_monetarias)
         stats = {
             'pendientes': stats_db.get('pendientes', 0) if stats_db else 0,
             'recibidas': stats_db.get('recibidas', 0) if stats_db else 0,
@@ -351,12 +268,8 @@ class UsuarioController:
             'ropa': stats_db.get('ropa', 0) if stats_db else 0,
             'otros': stats_db.get('otros', 0) if stats_db else 0,
             'total': stats_db.get('total', 0) if stats_db else 0,
-            'monetarias': total_monetarias
+            'monetarias': len(donaciones_monetarias)
         }
-
-        # CORRECCIÓN: Usamos self.donacion_model
-        solicitudes_ayuda = self.donacion_model.obtener_necesidades_por_fundacion(fundacion_id)
-        motivos_eliminacion = self.modelo.obtener_motivos_eliminacion()
 
         return render_template(
             "home_fundacion.html",
@@ -594,6 +507,9 @@ class UsuarioController:
                 except Exception as e:
                     print(f"❌ Error de conexión con Java: {e}")
                     flash("No se pudo conectar con el servicio de correos (Java)", "danger")
+                    
+                    historial_monetario = self.modelo.get_historial_monetario(usuario_id) \
+                    if hasattr(self.modelo, 'get_historial_monetario') else []
 
         return render_template(
             "home_donador.html",

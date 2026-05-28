@@ -3,285 +3,820 @@
 {% block title %}Publicar Donación - Red Solidaria{% endblock %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/donar.css') }}" />
-    <style>
-        /* ── Estructura para fijar el footer ── */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .page-wrapper {
-            flex: 1; /* Empuja el footer hacia abajo */
-        }
-
-        .info-urgencia {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-            color: #856404;
-        }
-        .readonly-field {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-            border: 1px solid #ced4da;
-        }
-        .form-card {
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 30px;
-            background: #fff;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .text-primary { color: #0d6efd !important; }
-
-        /* ── Descripción de fundación ── */
-        .fundacion-desc-box {
-            display: none;
-            background: #f0f4ff;
-            border: 1px solid #c7d4f8;
-            border-radius: 10px;
-            padding: 12px 15px;
-            margin-top: 8px;
-            font-size: 0.88rem;
-            color: #3a3a6e;
-            line-height: 1.5;
-        }
-        .fundacion-desc-box i { color: #2575fc; margin-right: 6px; }
-
-        /* ── Zona de fotos ── */
-        .fotos-zona {
-            border: 2px dashed #c0c0c0;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            background: #fafafa;
-            transition: border-color 0.2s;
-            cursor: pointer;
-        }
-        .fotos-zona:hover { border-color: #2575fc; background: #f0f4ff; }
-        .fotos-zona p { margin: 0; color: #888; font-size: 0.88rem; }
-        .fotos-preview {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-            justify-content: center;
-        }
-        .fotos-preview img {
-            width: 90px; height: 90px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 2px solid #dee2e6;
-        }
-        .fotos-preview .foto-item { position: relative; }
-        .fotos-preview .btn-quitar {
-            position: absolute; top: -6px; right: -6px;
-            background: #dc3545; color: white; border: none;
-            border-radius: 50%; width: 20px; height: 20px;
-            font-size: 0.7rem; cursor: pointer; line-height: 20px;
-            text-align: center; padding: 0;
-        }
-
-        /* ── Fix footer solo en esta página ── */
-        footer.bg-dark {
-            padding: 12px 20px !important;
-            flex-shrink: 0 !important;
-        }
-    </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/donar.css') }}" />
 {% endblock %}
 
 {% block content %}
+<style>
+    html, body, main {
+        background-color: #f4f6f9 !important;
+        background: #f4f6f9 !important;
+    }
+    #content, .content-wrapper, .container-fluid,
+    body > div:not(.navbar):not(.page-wrapper):not(.form-card) {
+        background-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    .page-wrapper {
+        flex: 1;
+        background-color: #f4f6f9 !important;
+        padding: 40px 20px !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block;
+    }
+    .page-wrapper .container, .page-wrapper .container-md {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+    nav, .navbar, header { margin-bottom: 0 !important; }
+    .form-card {
+        max-width: 1000px;
+        margin: 0 auto !important;
+        background: #ffffff !important;
+        border-radius: 22px !important;
+        padding: 40px;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 20px 40px rgba(13,110,253,.04), 0 1px 3px rgba(0,0,0,.02) !important;
+    }
+    .text-primary { color: #0d6efd !important; }
+    .readonly-field {
+        background-color: #e9ecef !important;
+        cursor: not-allowed;
+        border: 1px solid #ced4da !important;
+    }
+    .info-urgencia {
+        background: #fff8e1 !important;
+        border: 1px solid #ffe082 !important;
+        padding: 18px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        font-size: 0.9em;
+        color: #b78103 !important;
+    }
+    .tipo-donacion-card {
+        background: white !important;
+        border-radius: 18px;
+        border: 1px solid #dee2e6 !important;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.04) !important;
+    }
+    .tipo-option {
+        border: 2px solid #e0e6ed !important;
+        border-radius: 18px;
+        padding: 25px;
+        transition: all .3s ease;
+        cursor: pointer;
+        text-align: center;
+        width: 100%;
+        display: block;
+        background: #ffffff !important;
+    }
+    .tipo-option:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,.06) !important; }
+    #cardFisica.tipo-option.active  { border-color: #0d6efd !important; background: #f0f7ff !important; }
+    #cardMonetaria.tipo-option.active { border-color: #198754 !important; background: #f1f9f5 !important; }
+    .tipo-option i  { font-size: 45px; margin-bottom: 10px; }
+    #cardFisica i   { color: #0d6efd !important; }
+    #cardMonetaria i { color: #198754 !important; }
+    .tipo-option h5 { font-weight: 700; color: #212529 !important; }
+    .hidden-section { display: none !important; }
+    .panel-section {
+        border-radius: 20px;
+        background: white !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,.04) !important;
+        margin-top: 25px;
+    }
+    .seccion-dinamica { border-radius: 14px; padding: 20px; }
+    #seccionAlimentos { background: #fff9e6 !important; border-left: 5px solid #ffc107 !important; }
+    #seccionRopa      { background: #f0f5ff !important; border-left: 5px solid #0d6efd !important; }
+    #seccionOtros     { background: #f0f9fa !important; border-left: 5px solid #17a2b8 !important; }
+    .fotos-preview { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; justify-content:center; }
+    .fotos-preview img { width:100px; height:100px; object-fit:cover; border-radius:12px; }
+    footer.bg-dark { padding:12px 20px !important; flex-shrink:0 !important; }
+
+    /* ══ PASARELA ══ */
+    .pasarela-wrapper {
+        background: #0f172a;
+        border-radius: 24px;
+        padding: 32px;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+        margin-top: 24px;
+    }
+    .pasarela-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 28px; padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .pasarela-brand { display:flex; align-items:center; gap:12px; }
+    .pasarela-brand-icon {
+        width:44px; height:44px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem;
+    }
+    .pasarela-brand-name { color:white; font-weight:800; font-size:1.1rem; }
+    .pasarela-brand-sub  { color:rgba(255,255,255,.45); font-size:.72rem; text-transform:uppercase; letter-spacing:.8px; }
+    .pasarela-secure {
+        display:flex; align-items:center; gap:6px;
+        background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+        border-radius:20px; padding:6px 14px; color:rgba(255,255,255,.6); font-size:.75rem;
+    }
+    .pasarela-secure i { color:#22c55e; }
+    .metodo-tabs { display:flex; gap:10px; margin-bottom:24px; }
+    .metodo-tab {
+        flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+        border-radius:12px; padding:12px 8px; cursor:pointer; text-align:center;
+        transition:all .2s; color:rgba(255,255,255,.5); font-size:.82rem; font-weight:600;
+    }
+    .metodo-tab:hover { background:rgba(255,255,255,.08); }
+    .metodo-tab.activo { background:rgba(99,102,241,.15); border-color:#6366f1; color:white; }
+    .metodo-tab i { display:block; font-size:1.3rem; margin-bottom:5px; }
+    .monto-box {
+        background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+        border-radius:14px; padding:18px 20px; margin-bottom:20px;
+        display:flex; align-items:center; gap:14px;
+    }
+    .monto-currency { color:rgba(255,255,255,.4); font-size:1.4rem; font-weight:700; }
+    .monto-input-big {
+        background:transparent !important; border:none !important;
+        color:white !important; font-size:2rem !important; font-weight:800 !important;
+        flex:1; padding:0 !important; outline:none !important; width:100%;
+    }
+    .monto-input-big::placeholder { color:rgba(255,255,255,.2) !important; font-size:2rem; }
+    .monto-input-big:focus { box-shadow:none !important; }
+    .card-visual {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f2b4a 50%, #1a1a2e 100%);
+        border-radius:18px; padding:26px; margin-bottom:28px; position:relative;
+        overflow:hidden; min-height:180px;
+        box-shadow:0 15px 40px rgba(0,0,0,.4);
+        border:1px solid rgba(255,255,255,.08);
+        transition: transform 0.4s ease;
+    }
+    .card-visual::before {
+        content:''; position:absolute; width:300px; height:300px; border-radius:50%;
+        background:radial-gradient(circle, rgba(99,102,241,.15) 0%, transparent 70%);
+        top:-100px; right:-80px;
+    }
+    .card-chip {
+        width:42px; height:32px;
+        background:linear-gradient(135deg,#fbbf24,#f59e0b);
+        border-radius:6px; margin-bottom:20px; position:relative; z-index:1;
+    }
+    .card-number-display {
+        color:white; font-size:1.45rem; font-family:'Courier New',monospace;
+        letter-spacing:4px; font-weight:600; margin-bottom:18px;
+        position:relative; z-index:1; text-shadow:0 2px 8px rgba(0,0,0,.3);
+    }
+    .card-bottom { display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
+    .card-label { color:rgba(255,255,255,.5); font-size:.62rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+    .card-value { color:white; font-size:.88rem; font-weight:600; letter-spacing:1px; }
+    .card-brand-logo span {
+        width:34px; height:34px; border-radius:50%; display:inline-block;
+    }
+    .card-brand-logo span:first-child { background:#ef4444; margin-right:-10px; }
+    .card-brand-logo span:last-child  { background:#f97316; opacity:.9; }
+    .pago-label {
+        color:rgba(255,255,255,.55); font-size:.72rem; text-transform:uppercase;
+        letter-spacing:.8px; font-weight:600; margin-bottom:7px; display:block;
+    }
+    .pago-input {
+        background:rgba(255,255,255,.06) !important; border:1px solid rgba(255,255,255,.1) !important;
+        border-radius:12px !important; color:white !important; padding:13px 16px !important;
+        font-size:.95rem !important; transition:all .2s !important; width:100%;
+    }
+    .pago-input::placeholder { color:rgba(255,255,255,.25) !important; }
+    .pago-input:focus {
+        outline:none !important; border-color:#6366f1 !important;
+        background:rgba(99,102,241,.08) !important; box-shadow:0 0 0 3px rgba(99,102,241,.15) !important;
+        color:white !important;
+    }
+    .pago-input.valido   { border-color:#22c55e !important; background:rgba(34,197,94,.06) !important; }
+    .pago-input.invalido { border-color:#ef4444 !important; background:rgba(239,68,68,.06) !important; }
+    .desc-pago-input {
+        background:rgba(255,255,255,.06) !important; border:1px solid rgba(255,255,255,.1) !important;
+        border-radius:12px !important; color:white !important; padding:13px 16px !important;
+        font-size:.9rem !important; resize:none; width:100%;
+    }
+    .desc-pago-input::placeholder { color:rgba(255,255,255,.25) !important; }
+    .desc-pago-input:focus {
+        outline:none !important; border-color:#6366f1 !important;
+        box-shadow:0 0 0 3px rgba(99,102,241,.15) !important;
+        color:white !important; background:rgba(99,102,241,.08) !important;
+    }
+    .btn-pagar {
+        background:linear-gradient(135deg,#6366f1,#8b5cf6) !important;
+        border:none !important; border-radius:14px !important; color:white !important;
+        font-weight:800 !important; font-size:1rem !important; padding:16px !important;
+        width:100%; margin-top:20px; transition:all .3s !important; letter-spacing:.5px;
+        cursor: pointer;
+    }
+    .btn-pagar:hover { transform:translateY(-2px) !important; box-shadow:0 12px 30px rgba(99,102,241,.35) !important; }
+    .garantias {
+        display:flex; gap:16px; flex-wrap:wrap; margin-top:20px;
+        padding-top:20px; border-top:1px solid rgba(255,255,255,.06);
+    }
+    .garantia-item { display:flex; align-items:center; gap:7px; color:rgba(255,255,255,.4); font-size:.72rem; }
+    .garantia-item i { color:#22c55e; font-size:.85rem; }
+
+            /* Contenedor que fija los mensajes arriba a la derecha */
+        /* Asegúrate de que el contenedor de alertas no sea de pantalla completa */
+    .flash-container-wrapper {
+        position: fixed;
+        top: 80px; /* Dale un margen desde arriba para que no tape el navbar */
+        right: 20px;
+        z-index: 1050; /* Un z-index alto, pero menor al del navbar */
+        pointer-events: none; /* Esto permite que el mouse "atraviese" el contenedor si no hay un toast visible */
+    }
+
+    .toast-donacion {
+        pointer-events: auto; /* Solo permite clic en el toast real */
+        display: flex;
+        align-items: center;
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        margin-bottom: 10px;
+        min-width: 300px;
+        border-left: 5px solid #ccc;
+        animation: slideIn 0.5s ease-out forwards, fadeOut 0.5s ease-in 4s forwards;
+    }
+
+        /* Forzar el tamaño de los iconos de la tarjeta */
+    .tipo-option i {
+        font-size: 45px !important;
+        margin-bottom: 10px !important;
+        display: block !important;
+    }
+
+    /* Asegurar que el navbar tenga prioridad */
+    .navbar {
+        z-index: 2000 !important;
+        position: relative;
+    }
+
+    .toast-donacion.success { border-left-color: #28a745; }
+    .toast-donacion.danger { border-left-color: #dc3545; }
+
+    .toast-icon { font-size: 1.5rem; margin-right: 15px; }
+    .toast-msg { font-weight: bold; color: #333; }
+    .toast-sub { font-size: 0.75rem; color: #888; }
+
+    /* Animaciones */
+    @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+</style>
+<body>
+
 <div class="page-wrapper">
-    <div class="container">
-        <div class="form-card">
-            <h1 class="text-center mb-4 text-primary fw-bold">🎁 Publicar Donación</h1>
 
-            {% if necesidad %}
-            <div class="info-urgencia shadow-sm">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Donación destinada a:</strong> {{ necesidad.nombre }}<br>
-                <small class="d-block mt-1"><strong>Causa:</strong> {{ necesidad.descripcion[:120] }}...</small>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container-wrapper">
+          {% for category, message in messages %}
+            <div class="toast-donacion {{ category }}">
+                <div class="toast-icon">
+                    {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% else %}ℹ️{% endif %}
+                </div>
+                <div class="toast-content">
+                    <div class="toast-msg">{{ message }}</div>
+                    <div class="toast-sub">Este mensaje desaparecerá en unos segundos</div>
+                </div>
             </div>
-            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    </body>
+<div class="form-card">
+    <h1 class="text-center mb-4 text-primary fw-bold">🎁 Publicar Donación</h1>
 
-            <form method="POST" 
-                  action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else 0) }}" 
-                  class="needs-validation" 
-                  enctype="multipart/form-data" 
-                  novalidate>
+    {% if necesidad %}
+    <div class="info-urgencia shadow-sm">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Donación destinada a:</strong> {{ necesidad.nombre }}
+        <br>
+        <strong class="d-block mt-1"><strong>Causa:</strong> {{ necesidad.descripcion[:120] }}...</strong>
+    </div>
+    {% endif %}
 
-                {# ── Fundación Destino ── #}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">🏛️ Fundación Destino:</label>
-                    {% if necesidad %}
-                        <input type="text" value="{{ necesidad.nombre_fundacion }}" class="form-control readonly-field" readonly>
-                        <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
-                        {% if necesidad.descripcion_fundacion %}
-                        <div class="fundacion-desc-box" style="display:block;">
-                            <i class="fas fa-info-circle"></i> {{ necesidad.descripcion_fundacion }}
-                        </div>
-                        {% endif %}
-                    {% else %}
-                        <select name="fundacion_id" class="form-select" required onchange="mostrarDescripcionFundacion(this)">
-                            <option value="" disabled selected>Selecciona la fundación destino...</option>
-                            {% for fund in fundaciones_activas %}
-                                <option value="{{ fund.id }}" data-desc="{{ fund.descripcion if fund.descripcion else '' }}">{{ fund.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="fundacion-desc-box" id="desc-fundacion">
-                            <i class="fas fa-info-circle"></i> <span id="texto-desc-fundacion"></span>
-                        </div>
-                    {% endif %}
+    {# ══════════════════════════════════════════════════
+       1. ABRIMOS EL FORMULARIO AQUÍ — único form
+    ══════════════════════════════════════════════════ #}
+    <form action="{{ url_for('donar', necesidad_id=necesidad.id if necesidad else 0) }}"
+          method="POST"
+          id="formDonacionCompleto"
+          enctype="multipart/form-data"
+          class="needs-validation" novalidate>
+
+        {# ══════════════════════════════════════════════════
+           2. SELECTOR TIPO
+        ══════════════════════════════════════════════════ #}
+        <div class="tipo-donacion-card">
+            <h4 class="fw-bold text-center mb-4">💝 Tipo de Donación</h4>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="tipo-option active" id="cardFisica">
+                        <input type="radio" name="tipo_donacion" value="fisico" checked style="display:none;">
+                        <i class="fas fa-box-open"></i>
+                        <h5>📦 Donación Física</h5>
+                        <p class="text-muted mb-0">Dona alimentos, ropa, útiles, recursos físicos y ayudas sociales.</p>
+                    </label>
                 </div>
-
-                {# ── Categoría ── #}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">📂 Categoría de la Donación:</label>
-                    {% if necesidad %}
-                        <input type="text" value="{{ necesidad.nombre_categoria }}" class="form-control readonly-field" readonly>
-                        <input type="hidden" name="categoria_id" value="{{ necesidad.categoria_id }}">
-                    {% else %}
-                        <select name="categoria_id" class="form-select" required>
-                            <option value="" disabled selected>Selecciona qué vas a donar...</option>
-                            {% for cat in categorias %}
-                                <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    {% endif %}
+                <div class="col-md-6">
+                    <label class="tipo-option" id="cardMonetaria">
+                        <input type="radio" name="tipo_donacion" value="monetario" style="display:none;">
+                        <i class="fas fa-university"></i>
+                        <h5>💳 Donación Monetaria</h5>
+                        <p class="text-muted mb-0">Realiza aportes económicos mediante pasarela segura.</p>
+                    </label>
                 </div>
-
-                {# ── Descripción ── #}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">📝 Descripción de tu donación:</label>
-                    <textarea name="descripcion" class="form-control" rows="3" placeholder="Ej: 5 bolsas de arroz de 1kg..." required></textarea>
-                </div>
-
-                {# ── Cantidad ── #}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">🔢 Cantidad / Unidades:</label>
-                    <input type="number" name="cantidad" class="form-control" min="1" placeholder="Ingresa el número" required>
-                </div>
-
-                {# ── NUEVO: MÉTODOS DE PAGO SEGURO ── #}
-                <div class="mb-4 p-3 border rounded bg-light shadow-sm">
-                    <label class="form-label fw-bold text-dark"><i class="fas fa-credit-card"></i> Datos de Pago Seguro</label>
-                    
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="metodo_pago" id="credito" value="credito" checked>
-                            <label class="form-check-label" for="credito">Crédito</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="metodo_pago" id="debito" value="debito">
-                            <label class="form-check-label" for="debito">Débito</label>
-                        </div>
-                    </div>
-
-                    <div class="row g-2">
-                        <div class="col-12">
-                            <input type="text" name="num_tarjeta" class="form-control" placeholder="0000 0000 0000 0000" maxlength="16" required>
-                        </div>
-                        <div class="col-6">
-                            <input type="text" name="expiracion" class="form-control" placeholder="MM/AA" maxlength="5" required>
-                        </div>
-                        <div class="col-6">
-                            <input type="password" name="cvv" class="form-control" placeholder="CVV" maxlength="3" required>
-                        </div>
-                    </div>
-                    <div class="form-text mt-2"><i class="fas fa-lock text-success"></i> Transacción cifrada y protegida.</div>
-                </div>
-
-                <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-lg py-3">
-                    <i class="fas fa-lock"></i> {% if necesidad %}CONFIRMAR PAGO DE AYUDA{% else %}PROCESAR DONACIÓN SEGURA{% endif %}
-                </button>
-            </form>
-
-            <div class="text-center mt-4">
-                <a href="{{ url_for('home_donador') }}" class="text-decoration-none text-muted small">
-                    <i class="fas fa-arrow-left me-1"></i> Volver al Panel de Donador
-                </a>
             </div>
         </div>
+
+        {# Fundación destino — compartida por ambos tipos #}
+        <div class="mb-4">
+            <label class="form-label fw-bold">🏛️ Fundación Destino</label>
+            {% if necesidad %}
+                <input type="text" value="{{ necesidad.nombre_fundacion }}" class="form-control readonly-field" readonly>
+                <input type="hidden" name="fundacion_id" value="{{ necesidad.fundacion_id }}">
+            {% else %}
+                <select name="fundacion_id" class="form-select form-control-lg" required>
+                    <option value="" disabled selected>Seleccione una fundación...</option>
+                    {% for fund in fundaciones_activas %}
+                        <option value="{{ fund.id }}">{{ fund.nombre }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+
+        {# ══════════════════════════════════════════════════
+           3. SECCIÓN FÍSICA
+        ══════════════════════════════════════════════════ #}
+        <div id="seccionFisica" class="panel-section p-4">
+            <div class="mb-4">
+                <label class="form-label fw-bold">📦 Categoría del Recurso</label>
+                <select id="selectCategoria" name="categoria_id"
+                        class="form-select form-control-lg campo-fisico" required>
+                    <option selected disabled value="">Seleccione una categoría...</option>
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">🔢 Cantidad / Unidades</label>
+                    <input type="number" name="cantidad"
+                           class="form-control form-control-lg campo-fisico"
+                           placeholder="Ej: 20 unidades" min="1" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">🚨 Nivel de urgencia</label>
+                    <select name="urgencia" class="form-select form-control-lg campo-fisico" required>
+                        <option value="baja">Baja</option>
+                        <option value="media" selected>Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+
+                <div class="col-12 seccion-dinamica" id="seccionAlimentos" style="display:none;">
+                    <h5 class="fw-bold mb-3">🥫 Donación de alimentos</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="fw-bold">⏳ Margen de Caducidad</label>
+                            <select class="form-select" name="margen_caducidad">
+                                <option>No menor a 15 días</option>
+                                <option>No menor a 30 días</option>
+                                <option>No menor a 45 días</option>
+                                <option>No menor a 60 días</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">🥫 Detalle alimentos</label>
+                            <input type="text" name="detalle_alimentos" class="form-control"
+                                   placeholder="Ej: arroz, aceite...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 seccion-dinamica" id="seccionRopa" style="display:none;">
+                    <h5 class="fw-bold mb-3">👕 Ropa y Calzado</h5>
+                    <div class="d-flex gap-2 mb-4 flex-wrap">
+                        <button type="button" id="btnTipoRopa"
+                                class="btn btn-outline-primary fw-bold px-4">👕 Ropa</button>
+                        <button type="button" id="btnTipoCalzado"
+                                class="btn btn-outline-primary fw-bold px-4">👟 Calzado</button>
+                    </div>
+                    <input type="hidden" id="ropaSubtipo" name="ropa_subtipo">
+                    <div class="row g-3" id="ropaExtra" style="display:none;">
+                        <div class="col-md-6">
+                            <label class="fw-bold">👥 Público Destino</label>
+                            <select class="form-select" name="publico_destino">
+                                <option>Hombre</option><option>Mujer</option>
+                                <option>Niño</option><option>Niña</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">✏️ Especificación</label>
+                            <input type="text" name="especificacion_ropa" class="form-control"
+                                   placeholder="Ej: camisas, zapatos...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 seccion-dinamica" id="seccionOtros" style="display:none;">
+                    <h5 class="fw-bold mb-3">📌 Otros recursos</h5>
+                    <input type="text" name="descripcion_otros" class="form-control"
+                           placeholder="Ej: cuadernos, sillas...">
+                </div>
+
+                <div class="col-12">
+                    <label class="fw-bold">📝 Descripción de tu donación</label>
+                    <textarea name="descripcion" class="form-control campo-fisico" rows="4"
+                              placeholder="Ej: 5 bolsas de arroz de 1kg..." required></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="fw-bold mb-2 d-block">📸 Evidencia de la Donación</label>
+                    <div class="border border-2 rounded p-4 text-center bg-light"
+                         style="border-style:dashed !important;">
+                        <input type="file" id="inputFotos" name="fotos"
+                               multiple accept="image/*" class="form-control campo-fisico">
+                        <div class="form-text mt-2">Máximo 3 fotos</div>
+                        <div id="preview-fotos"
+                             class="d-flex gap-2 mt-3 flex-wrap justify-content-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            {# BOTÓN FÍSICO dentro de la sección #}
+            <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow-lg py-3 mt-4">
+                <i class="fas fa-box-open me-2"></i> CONFIRMAR DONACIÓN FÍSICA
+            </button>
+        </div>
+
+        {# ══════════════════════════════════════════════════
+           4. SECCIÓN MONETARIA — PASARELA
+        ══════════════════════════════════════════════════ #}
+        <div id="seccionMonetaria" class="hidden-section">
+            <div class="pasarela-wrapper">
+
+                {# Header #}
+                <div class="pasarela-header">
+                    <div class="pasarela-brand">
+                        <div class="pasarela-brand-icon">🔐</div>
+                        <div>
+                            <div class="pasarela-brand-name">Red Solidaria Pay</div>
+                            <div class="pasarela-brand-sub">Pasarela de Donaciones</div>
+                        </div>
+                    </div>
+                    <div class="pasarela-secure">
+                        <i class="fas fa-lock"></i> SSL 256-bit
+                    </div>
+                </div>
+
+                {# Métodos #}
+                <div class="metodo-tabs">
+                    <div class="metodo-tab activo" id="tabCredito" onclick="seleccionarMetodo('credito')">
+                        <i class="fas fa-credit-card"></i> Crédito
+                    </div>
+                    <div class="metodo-tab" id="tabDebito" onclick="seleccionarMetodo('debito')">
+                        <i class="fas fa-university"></i> Débito
+                    </div>
+                    <div class="metodo-tab" id="tabPSE" onclick="seleccionarMetodo('PSE')">
+                        <i class="fas fa-building"></i> PSE
+                    </div>
+                    <div class="metodo-tab" id="tabNequi" onclick="seleccionarMetodo('Nequi')">
+                        <i class="fas fa-mobile-alt"></i> Nequi
+                    </div>
+                </div>
+                <input type="hidden" name="metodo_pago" id="metodo_pago_val" value="credito">
+
+                {# Monto #}
+                <div class="monto-box">
+                    <span class="monto-currency">$</span>
+                    <input type="number" name="monto" id="inputMonto"
+                           class="monto-input-big campo-pago"
+                           placeholder="0" min="1000" step="1000">
+                    <span style="color:rgba(255,255,255,0.3);font-size:0.85rem;">COP</span>
+                </div>
+
+                {# Tarjeta visual #}
+                <div class="card-visual" id="cardVisual">
+                    <div class="card-chip"></div>
+                    <div class="card-number-display" id="cardNumberDisplay">
+                        •••• &nbsp;•••• &nbsp;•••• &nbsp;••••
+                    </div>
+                    <div class="card-bottom">
+                        <div>
+                            <div class="card-label">Titular</div>
+                            <div class="card-value" id="cardTitularDisplay">NOMBRE APELLIDO</div>
+                        </div>
+                        <div>
+                            <div class="card-label">Vence</div>
+                            <div class="card-value" id="cardExpDisplay">MM/AA</div>
+                        </div>
+                        <div class="card-brand-logo">
+                            <span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+
+                {# Campos tarjeta crédito/débito #}
+                <div id="camposTarjeta">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="pago-label">Número de tarjeta</label>
+                            <input type="text" name="num_tarjeta" id="inputNumTarjeta"
+                                   class="pago-input campo-pago"
+                                   placeholder="0000 0000 0000 0000"
+                                   maxlength="19" autocomplete="cc-number">
+                        </div>
+                        <div class="col-12">
+                            <label class="pago-label">Titular de la tarjeta</label>
+                            <input type="text" name="titular" id="inputTitular"
+                                   class="pago-input campo-pago"
+                                   placeholder="Como aparece en la tarjeta"
+                                   autocomplete="cc-name">
+                        </div>
+                        <div class="col-6">
+                            <label class="pago-label">Fecha de expiración</label>
+                            <input type="text" name="expiracion" id="inputExpiracion"
+                                   class="pago-input campo-pago"
+                                   placeholder="MM/AA" maxlength="5"
+                                   autocomplete="cc-exp">
+                        </div>
+                        <div class="col-6">
+                            <label class="pago-label">CVV</label>
+                            <input type="password" name="cvv" id="inputCvv"
+                                   class="pago-input campo-pago"
+                                   placeholder="•••" maxlength="3"
+                                   autocomplete="cc-csc">
+                        </div>
+                    </div>
+                </div>
+
+                {# Campos PSE #}
+                <div id="camposPSE" style="display:none;">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="pago-label">Banco</label>
+                            <select name="banco_pse" class="pago-input">
+                                <option value="" style="background:#1e293b;">Selecciona tu banco...</option>
+                                <option value="Bancolombia"         style="background:#1e293b;">Bancolombia</option>
+                                <option value="Davivienda"          style="background:#1e293b;">Davivienda</option>
+                                <option value="Banco de Bogotá"     style="background:#1e293b;">Banco de Bogotá</option>
+                                <option value="BBVA"                style="background:#1e293b;">BBVA Colombia</option>
+                                <option value="Banco Popular"       style="background:#1e293b;">Banco Popular</option>
+                                <option value="Scotiabank Colpatria" style="background:#1e293b;">Scotiabank Colpatria</option>
+                                <option value="Banco Caja Social"   style="background:#1e293b;">Banco Caja Social</option>
+                                <option value="Nequi"               style="background:#1e293b;">Nequi</option>
+                                <option value="Daviplata"           style="background:#1e293b;">Daviplata</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="pago-label">Tipo de persona</label>
+                            <div style="display:flex;gap:16px;margin-top:6px;">
+                                <label style="color:rgba(255,255,255,.7);display:flex;gap:8px;align-items:center;cursor:pointer;">
+                                    <input type="radio" name="tipo_persona" value="natural" checked> Natural
+                                </label>
+                                <label style="color:rgba(255,255,255,.7);display:flex;gap:8px;align-items:center;cursor:pointer;">
+                                    <input type="radio" name="tipo_persona" value="juridica"> Jurídica
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="pago-label">Tipo de documento</label>
+                            <select name="tipo_doc" class="pago-input">
+                                <option value="CC"  style="background:#1e293b;">Cédula (CC)</option>
+                                <option value="NIT" style="background:#1e293b;">NIT</option>
+                                <option value="CE"  style="background:#1e293b;">Cédula extranjería</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="pago-label">Número de documento</label>
+                            <input type="text" name="num_documento" class="pago-input"
+                                   placeholder="Ej: 10234567">
+                        </div>
+                    </div>
+                </div>
+
+                {# Campos Nequi #}
+                <div id="camposNequi" style="display:none;">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="pago-label">Número celular Nequi</label>
+                            <input type="tel" name="celular_nequi" class="pago-input"
+                                   placeholder="3XXXXXXXXX" maxlength="10">
+                        </div>
+                    </div>
+                </div>
+
+                {# Descripción monetaria #}
+                <div class="mb-3">
+                    <label class="pago-label">Descripción / Mensaje (opcional)</label>
+                    <textarea name="descripcion" class="desc-pago-input" rows="2"
+                              placeholder="Ej: Donación para apoyo alimentario..."></textarea>
+                </div>
+                <input type="hidden" name="referencia_pago" id="referenciaPago">
+
+                {# BOTÓN MONETARIO dentro de la sección #}
+                <button type="button" class="btn-pagar" id="btnPagar" onclick="validarYEnviar()">
+                    <i class="fas fa-lock me-2"></i>
+                    PROCESAR DONACIÓN — $<span id="montoPreview">0</span> COP
+                </button>
+                {# Garantías #}
+                <div class="garantias">
+                    <div class="garantia-item"><i class="fas fa-shield-alt"></i> Pago 100% seguro</div>
+                    <div class="garantia-item"><i class="fas fa-lock"></i> Cifrado SSL</div>
+                    <div class="garantia-item"><i class="fas fa-check-circle"></i> Sin comisiones</div>
+                    <div class="garantia-item"><i class="fas fa-undo"></i> Respaldo garantizado</div>
+                </div>
+            </div>
+        </div>
+
+    {# ══════════════════════════════════════════════════
+       5. CERRAMOS EL FORMULARIO AL FINAL
+    ══════════════════════════════════════════════════ #}
+    </form>
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home_donador') }}" class="text-decoration-none text-muted small">
+            <i class="fas fa-arrow-left me-1"></i> Volver al panel del donador
+        </a>
     </div>
+</div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function toggleTipoDonacion(valor) {
-        document.getElementById('campos-monetarios').style.display = valor === 'monetario' ? 'block' : 'none';
-        document.getElementById('campos-fisicos').style.display = valor === 'monetario' ? 'none' : 'block';
+    const radioFisica     = document.querySelector('input[value="fisico"]');
+    const radioMonetaria = document.querySelector('input[value="monetario"]');
+    const formDonacion   = document.querySelector('form'); // Asumiendo que tu formulario es un <form>
+
+    function gestionarCampos() {
+        const esMonetaria = radioMonetaria.checked;
+        document.getElementById('seccionFisica').style.display = esMonetaria ? 'none' : 'block';
+        document.getElementById('seccionMonetaria').classList.toggle('hidden-section', !esMonetaria);
+        document.getElementById('cardFisica').classList.toggle('active', !esMonetaria);
+        document.getElementById('cardMonetaria').classList.toggle('active', esMonetaria);
+        
+        // Ajuste de required
+        document.querySelectorAll('.campo-pago').forEach(c  => c.required = esMonetaria);
+        document.querySelectorAll('.campo-fisico').forEach(c => c.required = !esMonetaria);
     }
+
+    // --- CORRECCIÓN CRÍTICA: Validación de Fundación al enviar ---
+    const form = document.getElementById('formDonacionCompleto');
     
-    function mostrarDescripcionFundacion(select) {
-        const opcion = select.options[select.selectedIndex];
-        const desc   = opcion.getAttribute('data-desc');
-        const caja   = document.getElementById('desc-fundacion');
-        const texto  = document.getElementById('texto-desc-fundacion');
-        if (desc && desc.trim() !== '') {
-            texto.textContent  = desc;
-            caja.style.display = 'block';
-        } else {
-            caja.style.display = 'none';
+    form.addEventListener('submit', function(event) {
+        const selectFundacion = document.getElementById('selectFundacion');
+        
+        // Verificamos si existe el select (por si es una necesidad prellenada)
+        if (selectFundacion) {
+            if (selectFundacion.value === "") {
+                event.preventDefault(); // Detiene el envío
+                event.stopPropagation();
+                
+                // Efecto visual para que el usuario vea dónde está el error
+                selectFundacion.style.border = "2px solid red";
+                alert("¡Atención! Debes seleccionar una fundación destino.");
+                selectFundacion.focus();
+                return false;
+            }
         }
+    });
+
+        // En tu función de validación JS
+        function validarYEnviar() {
+        const fundacionSelect = document.querySelector('select[name="fundacion_id"]');
+        
+        // 1. Validar
+        if (!fundacionSelect || fundacionSelect.value === "") {
+            // Poner borde rojo para indicar dónde está el error
+            fundacionSelect.style.border = "2px solid #dc3545";
+            fundacionSelect.focus();
+            
+            // ¡NO USES ALERT! 
+            // Si quieres que el usuario vea un mensaje, debes mostrar el Toast 
+            // o simplemente dejar el borde rojo.
+            // Si quieres forzar el mensaje, mejor haz que el formulario se envíe 
+            // y deja que el servidor (Python) muestre el error.
+            
+            return; // Aquí termina y no hace nada más, evitando el envío vacío.
+        }
+        
+        // Si pasa la validación, enviamos
+        document.getElementById('formDonacionCompleto').submit();
     }
 
-    let archivosSeleccionados = [];
+    
+    document.getElementById('cardFisica').addEventListener('click', () => {
+        radioFisica.checked = true; gestionarCampos();
+    });
+    document.getElementById('cardMonetaria').addEventListener('click', () => {
+        radioMonetaria.checked = true; gestionarCampos();
+    });
+    radioFisica.addEventListener('change', gestionarCampos);
+    radioMonetaria.addEventListener('change', gestionarCampos);
+    gestionarCampos();
 
-    function previsualizarFotos(input) {
+    /* ── Métodos de pago ── */
+    function seleccionarMetodo(metodo) {
+        document.querySelectorAll('.metodo-tab').forEach(t => t.classList.remove('activo'));
+        const tabId = 'tab' + metodo.charAt(0).toUpperCase() + metodo.slice(1);
+        const tab = document.getElementById(tabId);
+        if (tab) tab.classList.add('activo');
+        document.getElementById('metodo_pago_val').value = metodo;
+
+        document.getElementById('camposTarjeta').style.display =
+            (metodo === 'credito' || metodo === 'debito') ? 'block' : 'none';
+        document.getElementById('camposPSE').style.display   = metodo === 'PSE'   ? 'block' : 'none';
+        document.getElementById('camposNequi').style.display = metodo === 'Nequi' ? 'block' : 'none';
+        document.getElementById('cardVisual').style.display  =
+            (metodo === 'credito' || metodo === 'debito') ? 'block' : 'none';
+
+        document.getElementById('referenciaPago').value = metodo + '_' + Date.now();
+    }
+
+    /* ── Resto de tus funciones visuales (tarjeta, preview, etc) sin cambios ── */
+    document.getElementById('inputNumTarjeta').addEventListener('input', function() {
+        let v = this.value.replace(/\D/g,'').substring(0,16);
+        this.value = v.replace(/(.{4})/g,'$1 ').trim();
+        const grupos = v.padEnd(16,'•').match(/.{4}/g);
+        document.getElementById('cardNumberDisplay').innerHTML = grupos.join('&nbsp;&nbsp;');
+    });
+
+    document.getElementById('inputTitular').addEventListener('input', function() {
+        document.getElementById('cardTitularDisplay').textContent = this.value.toUpperCase() || 'NOMBRE APELLIDO';
+    });
+
+    document.getElementById('inputExpiracion').addEventListener('input', function() {
+        let v = this.value.replace(/\D/g,'');
+        if (v.length >= 2) v = v.substring(0,2) + '/' + v.substring(2,4);
+        this.value = v;
+        document.getElementById('cardExpDisplay').textContent = v || 'MM/AA';
+    });
+
+    document.getElementById('inputCvv').addEventListener('focus', () => {
+        document.getElementById('cardVisual').style.transform = 'rotateY(180deg)';
+    });
+    document.getElementById('inputCvv').addEventListener('blur', () => {
+        document.getElementById('cardVisual').style.transform = 'rotateY(0deg)';
+    });
+
+    document.getElementById('inputMonto').addEventListener('input', function() {
+        const v = parseInt(this.value) || 0;
+        document.getElementById('montoPreview').textContent = v.toLocaleString('es-CO');
+    });
+
+    document.getElementById('selectCategoria').addEventListener('change', function() {
+        ['seccionAlimentos','seccionRopa','seccionOtros'].forEach(id =>
+            document.getElementById(id).style.display = 'none'
+        );
+        const texto = this.options[this.selectedIndex].text.toLowerCase();
+        if (texto.includes('alimento'))
+            document.getElementById('seccionAlimentos').style.display = 'block';
+        else if (texto.includes('ropa') || texto.includes('calzado'))
+            document.getElementById('seccionRopa').style.display = 'block';
+        else
+            document.getElementById('seccionOtros').style.display = 'block';
+    });
+
+    document.getElementById('btnTipoRopa').addEventListener('click', function() {
+        document.getElementById('ropaExtra').style.display = 'flex';
+        document.getElementById('ropaSubtipo').value = 'ropa';
+        this.classList.replace('btn-outline-primary','btn-primary');
+        document.getElementById('btnTipoCalzado').classList.replace('btn-primary','btn-outline-primary');
+    });
+    document.getElementById('btnTipoCalzado').addEventListener('click', function() {
+        document.getElementById('ropaExtra').style.display = 'flex';
+        document.getElementById('ropaSubtipo').value = 'calzado';
+        this.classList.replace('btn-outline-primary','btn-primary');
+        document.getElementById('btnTipoRopa').classList.replace('btn-primary','btn-outline-primary');
+    });
+
+    document.getElementById('inputFotos').addEventListener('change', function() {
         const preview = document.getElementById('preview-fotos');
-        const msg     = document.getElementById('msg-fotos');
-        const nuevos  = Array.from(input.files);
-
-        if (archivosSeleccionados.length + nuevos.length > 3) {
-            msg.style.display = 'block';
-            input.value = '';
-            return;
-        }
-        msg.style.display = 'none';
-
-        nuevos.forEach((archivo) => {
-            if (archivosSeleccionados.length >= 3) return;
-            archivosSeleccionados.push(archivo);
-            const idx    = archivosSeleccionados.length - 1;
+        preview.innerHTML = '';
+        Array.from(this.files).slice(0,3).forEach(file => {
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const item = document.createElement('div');
-                item.className = 'foto-item';
-                item.id = 'foto-item-' + idx;
-                item.innerHTML = `
-                    <img src="${e.target.result}" alt="foto ${idx+1}">
-                    <button type="button" class="btn-quitar" onclick="quitarFoto(${idx})">✕</button>
-                `;
-                preview.appendChild(item);
+            reader.onload = e => {
+                preview.innerHTML += `<img src="${e.target.result}" style="width:100px;height:100px;object-fit:cover;border-radius:12px;">`;
             };
-            reader.readAsDataURL(archivo);
+            reader.readAsDataURL(file);
         });
-        actualizarInput();
-    }
+    });
 
-    function quitarFoto(idx) {
-        archivosSeleccionados.splice(idx, 1);
-        const item = document.getElementById('foto-item-' + idx);
-        if (item) item.remove();
-        document.querySelectorAll('.foto-item').forEach((el, i) => {
-            el.id = 'foto-item-' + i;
-            el.querySelector('.btn-quitar').setAttribute('onclick', `quitarFoto(${i})`);
-        });
-        actualizarInput();
-        document.getElementById('msg-fotos').style.display = 'none';
-    }
-
-    function actualizarInput() {
-        const dt = new DataTransfer();
-        archivosSeleccionados.forEach(f => dt.items.add(f));
-        document.getElementById('inputFotos').files = dt.files;
-    }
+    document.getElementById('referenciaPago').value = 'credito_' + Date.now();
 </script>
 {% endblock %}

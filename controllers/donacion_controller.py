@@ -1,6 +1,10 @@
-from flask import render_template, redirect, url_for, flash, request, session
+from flask import render_template, redirect, url_for, flash, request, session, current_app
 from models.donacion_model import DonacionModel
-from flask import current_app as app
+import os
+import requests
+from werkzeug.utils import secure_filename
+# IMPORTANTE: Asegúrate que esta ruta sea la correcta según tu estructura de carpetas
+from database.db import get_connection 
 
 class DonacionController:
     def __init__(self, modelo=None):
@@ -185,7 +189,11 @@ class DonacionController:
     # MÉTODOS DE DONACIONES PARA DONADORES
     # =========================================================================
 
-    def publicar_donacion_view(self, request, session, necesidad_id=None):
+    def publicar_donacion_view(self, request, necesidad_id=None, fundacion_id=None):
+        print(f"DEBUG: Datos recibidos en POST: {request.form}")
+        print(f"DEBUG: Archivos recibidos en POST: {request.files}")
+        
+        # 1. Seguridad
         if "usuario_id" not in session:
             return redirect(url_for("login"))
             
@@ -193,12 +201,7 @@ class DonacionController:
         if necesidad_id:
             necesidad_prellenada = self.modelo.obtener_necesidad_por_id(necesidad_id)
 
-        from database.db import get_connection
-        from flask import current_app, render_template, flash, redirect, url_for
-        import os
-        from werkzeug.utils import secure_filename
-        import requests
-
+        # 2. Obtención de fundaciones activas
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -211,33 +214,49 @@ class DonacionController:
         fundaciones_activas = cursor.fetchall()
         conn.close()
 
+        # 3. Procesamiento del POST
         if request.method == "POST":
             donador_id = session["usuario_id"]
             tipo_donacion = request.form.get("tipo_donacion", "fisico")
-            fundacion_id = request.form.get("fundacion_id")
-            descripcion = request.form.get("descripcion")
+            
+            # Captura y validación estricta de la fundación
+            f_id_final = request.form.get("fundacion_id") or fundacion_id
+            
+            print(f"DEBUG: Iniciando POST donación. Usuario: {donador_id}, Fundación capturada: {f_id_final}, Tipo: {tipo_donacion}")
 
-            if not fundacion_id:
-                flash("Debes seleccionar una fundación destino.", "danger")
-                categorias = self.modelo.obtener_categorias()
-                return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
+            # BLINDAJE: Si la fundación es nula o vacía, bloqueamos el proceso aquí mismo
+            if not f_id_final or f_id_final == "" or f_id_final == "0":
+                print("DEBUG: ¡ERROR! Intento de donación sin fundación válida.")
+                flash("❌ Debes seleccionar una fundación destino válida para continuar.", "danger")
+                return render_template("donar.html", necesidad=necesidad_prellenada, 
+                                       categorias=self.modelo.obtener_categorias(), 
+                                       fundaciones_activas=fundaciones_activas)
+
+            descripcion = request.form.get("descripcion")
 
             # ── FLUJO MONETARIO ──
             if tipo_donacion == "monetario":
                 monto = request.form.get("monto", 0)
-                referencia = request.form.get("referencia", "")
-                exito = self.modelo.registrar_donacion_monetaria(donador_id, fundacion_id, monto, descripcion, referencia)
+                referencia = request.form.get("referencia_pago", "")
+                metodo = request.form.get("metodo_pago", "Desconocido")
+                
+                # ID 5 es la categoría 'Monetaria' que acabas de crear
+                categoria_id = 5 
+                
+                print(f"DEBUG: Registrando monetario. Categoría ID: {categoria_id}, Monto: {monto}, Fundación: {f_id_final}")
+                exito = self.modelo.registrar_donacion_monetaria(donador_id, int(f_id_final), categoria_id, monto, descripcion, referencia)
+                
                 if exito:
                     flash("💳 ¡Gracias! Tu donación monetaria ha sido registrada.", "success")
                     return redirect(url_for("home_donador"))
                 else:
-                    flash("❌ Error al registrar la donación monetaria.", "danger")
+                    flash("❌ Error al procesar la donación monetaria.", "danger")
 
             # ── FLUJO FÍSICO ──
             else:
                 categoria_id = request.form.get("categoria_id")
                 cantidad = request.form.get("cantidad")
-                fotos_lista = request.files.getlist("fotos") # Asegúrate de que este nombre coincida con tu HTML
+                fotos_lista = request.files.getlist("fotos")
                 nombre_foto_bd = None
 
                 if fotos_lista and fotos_lista[0].filename != '':
@@ -245,40 +264,32 @@ class DonacionController:
                     nombre_foto = secure_filename(archivo.filename)
                     carpeta_destino = os.path.join(current_app.root_path, 'static', 'img', 'donaciones')
                     os.makedirs(carpeta_destino, exist_ok=True)
-                    ruta_destino = os.path.join(carpeta_destino, nombre_foto)
-                    archivo.save(ruta_destino)
+                    archivo.save(os.path.join(carpeta_destino, nombre_foto))
                     nombre_foto_bd = nombre_foto
 
                 if necesidad_prellenada:
                     exito = self.modelo.registrar_donacion_con_necesidad(
-                        donador_id, fundacion_id, categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto_bd
+                        donador_id, int(f_id_final), categoria_id, cantidad, descripcion, necesidad_prellenada["id"], nombre_foto_bd
                     )
-                else:
-                    exito = self.modelo.registrar_donacion(donador_id, fundacion_id, categoria_id, cantidad, descripcion, nombre_foto_bd)
-
-                if exito:
-                    # Actualizar necesidad si aplica
-                    if necesidad_prellenada and "id" in necesidad_prellenada:
+                    if exito:
                         conn = get_connection()
                         cursor = conn.cursor()
                         cursor.execute("UPDATE necesidades SET estado = 'gestionada' WHERE id = %s", (necesidad_prellenada["id"],))
                         conn.commit()
                         conn.close()
+                else:
+                    exito = self.modelo.registrar_donacion(donador_id, int(f_id_final), categoria_id, cantidad, descripcion, nombre_foto_bd)
 
-                    # Notificación
-                    try:
-                        datos_correo = {"destinatario": session.get("correo", "usuario@ejemplo.com"), "nombreFundacion": "Red Solidaria", "estado": "DONACION_REGISTRADA"}
-                        requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=3)
-                    except:
-                        pass
-
+                if exito:
                     flash("🎉 ¡Gracias! Tu donación ha sido registrada.", "success")
                     return redirect(url_for("home_donador"))
                 else:
-                    flash("❌ Hubo un problema al registrar tu donación física.", "danger")
+                    flash("❌ Error al registrar la donación.", "danger")
 
-        categorias = self.modelo.obtener_categorias()
-        return render_template("donar.html", necesidad=necesidad_prellenada, categorias=categorias, fundaciones_activas=fundaciones_activas)
+        return render_template("donar.html", necesidad=necesidad_prellenada, 
+                               categorias=self.modelo.obtener_categorias(), 
+                               fundaciones_activas=fundaciones_activas)
+        
         
     def home_donador_view(self, session, request):
         if "usuario_id" not in session:
@@ -342,30 +353,34 @@ class DonacionController:
         exito = self.modelo.cambiar_estado_donacion(donacion_id, nuevo_estado)
 
         if exito:
-            # ── Sincronización con la Solicitud de Ayuda ──
+    # ── Sincronización con necesidad vinculada ──
             try:
                 if donacion_info and donacion_info.get('necesidad_id'):
                     nec_id = donacion_info['necesidad_id']
                     if accion == 'rechazar':
-                        self.modelo.cambiar_estado_necesidad(nec_id, 'activa')
+                        # Vuelve al carrusel general
+                        self.modelo.cambiar_estado_necesidad(nec_id, 'pendiente')
                     elif accion == 'aceptar':
                         self.modelo.cambiar_estado_necesidad(nec_id, 'completada')
             except Exception as e:
                 print(f"⚠️ Error al sincronizar estado necesidad: {e}")
 
-            # ── Notificaciones ──
+            # ── Notificación al donante ──
             if accion in ['aceptar', 'rechazar'] and donacion_info:
                 try:
                     datos_correo = {
-                        "destinatario": donacion_info.get("donador_email", "admin@redsolidaria.com"),
+                        "destinatario":    donacion_info.get("donador_email", ""),
                         "nombreFundacion": session.get("nombre", "Fundación"),
                         "estado": "RECIBIDO" if accion == "aceptar" else "RECHAZADO_DONACION"
                     }
-                    requests.post("http://localhost:8080/api/email/enviar", json=datos_correo, timeout=5)
+                    requests.post(
+                        "http://localhost:8080/api/email/enviar",
+                        json=datos_correo, timeout=5
+                    )
                 except Exception as e:
-                    print(f"Error notificación Java: {e}")
-            
-            flash(f"✅ Estado de la donación actualizado a: {nuevo_estado}", "success")
+                    print(f"Error notificación: {e}")
+
+            flash(f"✅ Donación actualizada correctamente.", "success")
         else:
             flash("❌ No se pudo actualizar la donación", "danger")
 

@@ -215,51 +215,55 @@
 
 {# ══ CONTENIDO PRINCIPAL (Columna de 9) ══ #}
 <div class="col-lg-9">
-    {# ══ SECCIÓN SOLICITUDES DE AYUDA ══ #}
-    <div class="panel-section mb-5 shadow-sm border-0" style="background:#fffdf0; border-left:5px solid #ffc107 !important; border-radius:15px; padding:25px;">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-            <h3 class="panel-title m-0"><i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda</h3>
-            <a href="{{ url_for('solicitudes_fundacion_completo') }}" class="btn btn-warning btn-sm fw-bold shadow-sm" style="border-radius: 20px; padding: 6px 15px;">🔗 Ver todas</a>
-        </div>
-        
-        <div class="contenedor-solicitudes-carrusel" style="display: flex; gap: 20px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth;">
-            {% for n in solicitudes_ayuda %}
-                {% if n.estado != 'eliminada' %}
-                    {# Usamos el campo 'tipo' de tu base de datos para la lógica #}
-                    {% set es_monetaria = (n.tipo == 'monetario') %}
-                    
-                    <div class="tarjeta-carrusel-item" style="flex: 0 0 320px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                        <div class="card card-necesidad h-100 border-0 shadow-sm" style="{% if es_monetaria %}border-left: 5px solid #28a745 !important;{% endif %} border-radius: 12px;">
-                            <div class="card-body p-4 d-flex flex-column">
-                                <div class="d-flex justify-content-between mb-3">
-                                    {# CORREGIDO: Usamos el nombre real del campo de la BD: n.fecha #}
-                                    <small class="text-muted"><i class="far fa-calendar-alt"></i> {{ n.fecha.strftime('%d/%m/%Y') if n.fecha else 'N/A' }}</small>
-                                    <span class="badge {% if n.estado == 'disponible' %}bg-warning{% else %}bg-success{% endif %}">{{ n.estado|capitalize }}</span>
-                                </div>
-                                
-                                <h6 class="fw-bold mb-2">
-                                    {% if es_monetaria %}
-                                        <i class="fas fa-bullseye text-success me-1"></i> Campaña Monetaria
-                                    {% else %}
-                                        <i class="fas fa-box text-primary me-1"></i> Recurso Físico
-                                    {% endif %}
-                                </h6>
+   {# ══ SECCIÓN SOLICITUDES DE AYUDA ══ #}
+<div class="panel-section mb-5 shadow-sm border-0" style="background:#fffdf0; border-left:5px solid #ffc107 !important; border-radius:15px; padding:25px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h3 class="panel-title m-0"><i class="fas fa-hand-holding-heart text-warning me-2"></i> Mis Solicitudes de Ayuda</h3>
+        <a href="{{ url_for('solicitudes_fundacion_completo') }}" class="btn btn-warning btn-sm fw-bold shadow-sm" style="border-radius: 20px; padding: 6px 15px;">🔗 Ver todas</a>
+    </div>
+    
+    <div class="contenedor-solicitudes-carrusel" style="display: flex; gap: 20px; overflow-x: auto; padding: 10px 5px; scroll-behavior: smooth;">
+        {% for n in solicitudes_ayuda %}
+            {% if n.estado != 'eliminada' %}
+                {% set es_monetaria = (n.tipo == 'monetario') %}
+                
+                <div class="tarjeta-carrusel-item" style="flex: 0 0 320px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                    <div class="card card-necesidad h-100 border-0 shadow-sm" style="{% if es_monetaria %}border-left: 5px solid #28a745 !important;{% endif %} border-radius: 12px;">
+                        <div class="card-body p-4 d-flex flex-column">
+                            <div class="d-flex justify-content-between mb-3">
+                                <small class="text-muted"><i class="far fa-calendar-alt"></i> {{ n.fecha.strftime('%d/%m/%Y') if n.fecha else 'N/A' }}</small>
+                                <span class="badge {% if n.estado == 'disponible' %}bg-warning{% else %}bg-success{% endif %}">{{ n.estado|capitalize }}</span>
+                            </div>
+                            
+                            <h6 class="fw-bold mb-2">
+                                {% if es_monetaria %}
+                                    <i class="fas fa-bullseye text-success me-1"></i> Campaña Monetaria
+                                {% else %}
+                                    <i class="fas fa-box text-primary me-1"></i> Recurso Físico
+                                {% endif %}
+                            </h6>
 
-                                <p class="card-text small mb-4" style="height: 3em; overflow: hidden;">{{ n.descripcion }}</p>
+                            <p class="card-text small mb-4" style="height: 3em; overflow: hidden;">{{ n.descripcion }}</p>
+                            
+                            <div class="mt-auto border-top pt-3">
+                                <span class="d-block fw-bold small text-primary mb-1">📦 Cantidad: {{ n.cantidad }}</span>
                                 
-                                <div class="mt-auto border-top pt-3">
-                                    <span class="d-block fw-bold small text-primary">📦 Cantidad: {{ n.cantidad }}</span>
+                                {# AQUÍ VA EL CAMBIO DE LÓGICA #}
+                                {% if es_monetaria %}
+                                    <span class="badge bg-success">Donación Monetaria</span>
+                                {% else %}
                                     <span class="badge bg-light text-dark border">{{ n.nombre_categoria or 'General' }}</span>
-                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                {% endif %}
-            {% else %}
-                <p class="text-muted">Aún no has publicado ninguna solicitud.</p>
-            {% endfor %}
-        </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="text-muted">Aún no has publicado ninguna solicitud.</p>
+        {% endfor %}
     </div>
+</div>
 
 
             {# ── Rastrear y Reportar ── #}
@@ -319,113 +323,113 @@
             </div>
 
             {# ── Donaciones ── #}
-            <div id="mis-donaciones" class="panel-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="panel-title m-0">📦 Donaciones Filtradas</h3>
-                    <span class="badge bg-dark">{{ donaciones|length if donaciones else 0 }} resultados</span>
-                </div>
+<div id="mis-donaciones" class="panel-section mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="panel-title m-0">📦 Donaciones Filtradas</h3>
+        <span class="badge bg-dark">{{ donaciones|length if donaciones else 0 }} resultados</span>
+    </div>
 
-               {% if donaciones %}
-<div class="row g-4">
-    {% for d in donaciones %}
-    <div class="col-12 col-md-6 col-lg-6">
-        <div class="card donacion-card h-100">
-            
-            <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
-                <span class="badge badge-categoria">{{ d.nombre_categoria }}</span>
+    {% if donaciones %}
+    <div class="row g-4">
+        {% for d in donaciones %}
+        <div class="col-12 col-md-6 col-lg-6">
+            <div class="card donacion-card h-100">
                 
-                {% if d.estado_donante == 'recibido' %}
-                    <span class="badge bg-success text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECIBIDO</span>
-                {% elif d.estado_donante == 'rechazado' %}
-                    <span class="badge bg-danger text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECHAZADO</span>
-                {% elif d.estado_donante == 'eliminado' %}
-                    <span class="badge bg-secondary text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">ELIMINADO</span>
-                {% else %}
-                    <span class="badge bg-warning text-dark px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">PENDIENTE</span>
-                {% endif %}
-            </div>
-
-            <div class="card-body px-4 py-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
+                <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <span class="badge badge-categoria">{{ d.nombre_categoria }}</span>
                     
-                    {% if d.foto_existe %}
-                        <button type="button" class="btn btn-sm btn-link" 
-                                onclick="document.getElementById('modalFotoOverlay').classList.add('activo'); document.getElementById('fotoModal').src='{{ url_for('static', filename='img/donaciones/' + d.fotos) }}';">
-                            🖼️ Ver Foto
-                        </button>
+                    {% if d.estado_donante == 'recibido' %}
+                        <span class="badge bg-success text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECIBIDO</span>
+                    {% elif d.estado_donante == 'rechazado' %}
+                        <span class="badge bg-danger text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECHAZADO</span>
+                    {% elif d.estado_donante == 'eliminado' %}
+                        <span class="badge bg-secondary text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">ELIMINADO</span>
                     {% else %}
-                        <span class="text-muted small">Sin imagen</span>
+                        <span class="badge bg-warning text-dark px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">PENDIENTE</span>
                     {% endif %}
                 </div>
 
-                <p class="card-text italic-quote mb-3">"{{ d.descripcion }}"</p>
-                
-                <div class="contact-box mb-3">
-                    <div class="d-flex flex-column gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted">Donante:</span>
-                            <span class="fw-semibold">{{ d.nombre_donante }}</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted">Teléfono:</span>
-                            <span>{{ d.telefono if d.telefono else '3509996462' }}</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted">Correo:</span>
-                            <span>{{ d.correo if d.correo else 'cami33@gmail.com' }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="caja-cantidad d-flex justify-content-between align-items-center">
-                    <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cantidad</span>
-                    <span class="fs-5 fw-bold text-primary">{{ d.cantidad }}</span>
-                </div>
-            </div>
-
-            <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
-                {% if d.estado_donante == 'pendiente' %}
-                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100 mb-2">
-                        <input type="hidden" name="donacion_id" value="{{ d.id }}">
-                        <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Aceptar</button>
-                        <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Rechazar</button>
-                    </form>
-                {% else %}
-                    <div class="text-center py-2 mb-2">
-                        {% if d.estado_donante == 'recibido' %}
-                            <span class="text-success small fw-bold text-uppercase">Gestionado como recibido</span>
-                        {% elif d.estado_donante == 'rechazado' %}
-                            <span class="text-danger small fw-bold text-uppercase">Donación rechazada</span>
-                        {% elif d.estado_donante == 'eliminado' %}
-                            <span class="text-muted small fw-bold text-uppercase">Archivado en reportes</span>
+                <div class="card-body px-4 py-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
+                        
+                        {% if d.foto_existe %}
+                            <button type="button" class="btn btn-sm btn-link" 
+                                    onclick="document.getElementById('modalFotoOverlay').classList.add('activo'); document.getElementById('fotoModal').src='{{ url_for('static', filename='img/donaciones/' + d.fotos) }}';">
+                                🖼️ Ver Foto
+                            </button>
+                        {% else %}
+                            <span class="text-muted small">Sin imagen</span>
                         {% endif %}
                     </div>
-                {% endif %}
 
-                <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="w-100 text-center">
-                    <input type="hidden" name="donacion_id" value="{{ d.id }}">
-                    <button type="submit" name="accion" value="eliminar" class="btn btn-outline-secondary w-100 py-2" style="border-radius: 10px; font-size: 0.85rem;" onclick="return confirm('¿Deseas eliminar este registro?');">
-                        <i class="bi bi-trash3-fill"></i> Eliminar registro
-                    </button>
-                </form>
-            </div>
-        </div> 
+                    <p class="card-text italic-quote mb-3">"{{ d.descripcion }}"</p>
+                    
+                    <div class="contact-box mb-3">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">Donante:</span>
+                                <span class="fw-semibold">{{ d.nombre_donante }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">Teléfono:</span>
+                                <span>{{ d.telefono if d.telefono else '3509996462' }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">Correo:</span>
+                                <span>{{ d.correo if d.correo else 'cami33@gmail.com' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="caja-cantidad d-flex justify-content-between align-items-center">
+                        <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cantidad</span>
+                        <span class="fs-5 fw-bold text-primary">{{ d.cantidad }}</span>
+                    </div>
+                </div>
+
+                <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
+                    {% if d.estado_donante == 'pendiente' %}
+                        <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100 mb-2">
+                            <input type="hidden" name="donacion_id" value="{{ d.id }}">
+                            <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Aceptar</button>
+                            <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Rechazar</button>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-2 mb-2">
+                            {% if d.estado_donante == 'recibido' %}
+                                <span class="text-success small fw-bold text-uppercase">Gestionado como recibido</span>
+                            {% elif d.estado_donante == 'rechazado' %}
+                                <span class="text-danger small fw-bold text-uppercase">Donación rechazada</span>
+                            {% elif d.estado_donante == 'eliminado' %}
+                                <span class="text-muted small fw-bold text-uppercase">Archivado en reportes</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="w-100 text-center">
+                        <input type="hidden" name="donacion_id" value="{{ d.id }}">
+                        <button type="submit" name="accion" value="eliminar" class="btn btn-outline-secondary w-100 py-2" style="border-radius: 10px; font-size: 0.85rem;" onclick="return confirm('¿Deseas eliminar este registro?');">
+                            <i class="bi bi-trash3-fill"></i> Eliminar registro
+                        </button>
+                    </form>
+                </div>
+            </div> 
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
 
-<div id="modalFotoOverlay" onclick="this.classList.remove('activo')">
-    <button class="btn-cerrar-foto" onclick="document.getElementById('modalFotoOverlay').classList.remove('activo')">×</button>
-    <img id="fotoModal" src="" class="modal-content-img" onclick="event.stopPropagation()">
-</div>
+    <div id="modalFotoOverlay" onclick="this.classList.remove('activo')">
+        <button class="btn-cerrar-foto" onclick="document.getElementById('modalFotoOverlay').classList.remove('activo')">×</button>
+        <img id="fotoModal" src="" class="modal-content-img" onclick="event.stopPropagation()">
+    </div>
 
-{% else %}
-<div class="text-center py-5 bg-white rounded-4 border" style="border-radius: 16px;">
-    <p class="text-muted mb-0 fw-medium">No se encontraron donaciones con estos filtros.</p>
+    {% else %}
+    <div class="text-center py-5 bg-white rounded-4 border" style="border-radius: 16px;">
+        <p class="text-muted mb-0 fw-medium">No se encontraron donaciones con estos filtros.</p>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
-            </div>
         </div> 
     </div> 
 </div>

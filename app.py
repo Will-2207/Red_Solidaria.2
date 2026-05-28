@@ -18,6 +18,7 @@ from controllers.usuario_controller import UsuarioController
 from controllers.donacion_controller import DonacionController
 from controllers.soportecontroller import SoporteController
 from controllers.home_administrador_controller import mostrar_home_administrador, api_admin
+donacion_ctrl = DonacionController()  # Inicialización temporal para evitar errores de referencia circular
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 # Cambia tu línea de inicialización de la app por esta:
@@ -101,12 +102,19 @@ def serializar_datos(obj):
 def gestionar_donacion():
     return donacion_ctrl.gestionar_donacion_accion()
 
-@app.route("/donar/monetario", methods=["GET", "POST"])
-def donar_monetario():
-    if 'usuario_id' not in session:
-        return redirect(url_for('login'))
-    return donacion_ctrl.publicar_donacion_view(request, session, tipo="monetario")
+# ================= RUTAS DE ACCIONES =================
 
+# Agrupamos todas las rutas que llevan a la misma función aquí arriba:
+
+@app.route("/donar", methods=["GET", "POST"])
+@app.route("/donar/<int:necesidad_id>", methods=["GET", "POST"])
+def donar(necesidad_id=None):
+    fundacion_id = request.form.get('fundacion_id')
+    n_id = necesidad_id if necesidad_id != 0 else None
+    
+    # LLAMADA POSICIONAL: Quitamos 'necesidad_id=' y 'fundacion_id='
+    # Esto envía: request -> request, n_id -> necesidad_id, fundacion_id -> fundacion_id
+    return donacion_ctrl.publicar_donacion_view(request, n_id, fundacion_id)
 # ================= FUNCIONES DE COMUNICACIÓN CON JAVA =================
 
 def enviar_al_correo_java(email, nombre, estado):
@@ -210,10 +218,6 @@ def subir_foto():
 def editar_perfil():
     return usuario_ctrl.editar_perfil_view()
 
-@app.route("/donar", methods=["GET", "POST"])
-@app.route("/donar/<int:necesidad_id>", methods=["GET", "POST"])
-def donar(necesidad_id=None):
-    return usuario_ctrl.publicar_donacion_view(request, session, necesidad_id)
 
 @app.route("/aprobar/<int:id>")
 def aprobar_fundacion_ruta(id):
@@ -288,9 +292,6 @@ def ver_carpeta():
     archivos = os.listdir(ruta)
     return str(archivos)
 
-import os
-print(f"--- RUTA DE TRABAJO (CWD): {os.getcwd()} ---")
-print(f"--- RUTA DE STATIC (REAL): {os.path.join(os.getcwd(), 'static')} ---")
 
 # ================= RUN =================
 if __name__ == "__main__":
