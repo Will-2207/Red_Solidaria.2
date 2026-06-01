@@ -330,70 +330,115 @@
     </div>
 
     {% if donaciones %}
-    <div class="row g-4">
-        {% for d in donaciones %}
-        <div class="col-12 col-md-6 col-lg-6">
-            <div class="card donacion-card h-100">
-                
-                <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
-                    <span class="badge badge-categoria">{{ d.nombre_categoria }}</span>
-                    
+<div class="row g-4">
+    {% for d in donaciones %}
+    <div class="col-12 col-md-6 col-lg-6">
+        <div class="card donacion-card h-100">
+
+            {# ── HEADER — badge según tipo ── #}
+            <div class="card-header border-0 bg-transparent pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                <span class="badge badge-categoria">{{ d.nombre_categoria }}</span>
+
+                {% if d.tipo == 'monetario' %}
+                    {# Monetaria — siempre verde RECIBIDA #}
+                    <span class="badge bg-success text-white px-3"
+                          style="border-radius:30px;font-size:0.72rem;font-weight:700;">
+                        💳 RECIBIDA
+                    </span>
+                {% else %}
+                    {# Física — lógica actual de estados #}
                     {% if d.estado_donante == 'recibido' %}
-                        <span class="badge bg-success text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECIBIDO</span>
+                        <span class="badge bg-success text-white px-3"
+                              style="border-radius:30px;font-size:0.72rem;font-weight:700;">RECIBIDO</span>
                     {% elif d.estado_donante == 'rechazado' %}
-                        <span class="badge bg-danger text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">RECHAZADO</span>
+                        <span class="badge bg-danger text-white px-3"
+                              style="border-radius:30px;font-size:0.72rem;font-weight:700;">RECHAZADO</span>
                     {% elif d.estado_donante == 'eliminado' %}
-                        <span class="badge bg-secondary text-white px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">ELIMINADO</span>
+                        <span class="badge bg-secondary text-white px-3"
+                              style="border-radius:30px;font-size:0.72rem;font-weight:700;">ELIMINADO</span>
                     {% else %}
-                        <span class="badge bg-warning text-dark px-3 py-1.5" style="border-radius: 30px; font-size: 0.72rem; font-weight: 700;">PENDIENTE</span>
+                        <span class="badge bg-warning text-dark px-3"
+                              style="border-radius:30px;font-size:0.72rem;font-weight:700;">PENDIENTE</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {# ── BODY — igual para ambos tipos ── #}
+            <div class="card-body px-4 py-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="card-title m-0">
+                        {% if d.tipo == 'monetario' %}
+                            💳 Donación Monetaria
+                        {% else %}
+                            ¡Donación Voluntaria!
+                        {% endif %}
+                    </h5>
+                    {% if d.foto_existe %}
+                        <button type="button" class="btn btn-sm btn-link"
+                                onclick="document.getElementById('modalFotoOverlay').classList.add('activo');
+                                         document.getElementById('fotoModal').src='{{ url_for('static', filename='img/donaciones/' + d.fotos) }}';">
+                            🖼️ Ver Foto
+                        </button>
+                    {% else %}
+                        <span class="text-muted small">Sin imagen</span>
                     {% endif %}
                 </div>
 
-                <div class="card-body px-4 py-2">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="card-title m-0">¡Donación Voluntaria!</h5>
-                        
-                        {% if d.foto_existe %}
-                            <button type="button" class="btn btn-sm btn-link" 
-                                    onclick="document.getElementById('modalFotoOverlay').classList.add('activo'); document.getElementById('fotoModal').src='{{ url_for('static', filename='img/donaciones/' + d.fotos) }}';">
-                                🖼️ Ver Foto
-                            </button>
-                        {% else %}
-                            <span class="text-muted small">Sin imagen</span>
-                        {% endif %}
-                    </div>
+                <p class="card-text italic-quote mb-3">"{{ d.descripcion }}"</p>
 
-                    <p class="card-text italic-quote mb-3">"{{ d.descripcion }}"</p>
-                    
-                    <div class="contact-box mb-3">
-                        <div class="d-flex flex-column gap-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted">Donante:</span>
-                                <span class="fw-semibold">{{ d.nombre_donante }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted">Teléfono:</span>
-                                <span>{{ d.telefono if d.telefono else '3509996462' }}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted">Correo:</span>
-                                <span>{{ d.correo if d.correo else 'cami33@gmail.com' }}</span>
-                            </div>
+                <div class="contact-box mb-3">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Donante:</span>
+                            <span class="fw-semibold">{{ d.nombre_donante }}</span>
                         </div>
-                    </div>
-
-                    <div class="caja-cantidad d-flex justify-content-between align-items-center">
-                        <span class="text-muted small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cantidad</span>
-                        <span class="fs-5 fw-bold text-primary">{{ d.cantidad }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Teléfono:</span>
+                            <span>{{ d.telefono if d.telefono else '—' }}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Correo:</span>
+                            <span>{{ d.correo if d.correo else '—' }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
+                <div class="caja-cantidad d-flex justify-content-between align-items-center">
+                    <span class="text-muted small fw-bold text-uppercase"
+                          style="font-size:0.7rem;letter-spacing:0.5px;">
+                        {% if d.tipo == 'monetario' %}Monto{% else %}Cantidad{% endif %}
+                    </span>
+                    <span class="fs-5 fw-bold text-primary">
+                        {% if d.tipo == 'monetario' %}
+                            ${{ "{:,.0f}".format(d.cantidad|int) }} COP
+                        {% else %}
+                            {{ d.cantidad }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {# ── FOOTER — acciones según tipo ── #}
+            <div class="card-footer border-0 bg-transparent px-4 pb-4 pt-2">
+                {% if d.tipo == 'monetario' %}
+                    {# Monetaria — solo botón eliminar, sin aceptar/rechazar #}
+                    <div class="text-center py-2 mb-2">
+                        <span class="text-success small fw-bold text-uppercase">
+                            ✅ Transacción completada automáticamente
+                        </span>
+                    </div>
+                {% else %}
+                    {# Física — lógica actual intacta #}
                     {% if d.estado_donante == 'pendiente' %}
-                        <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="d-flex gap-2 justify-content-between w-100 mb-2">
+                        <form action="{{ url_for('gestionar_donacion') }}" method="POST"
+                              class="d-flex gap-2 justify-content-between w-100 mb-2">
                             <input type="hidden" name="donacion_id" value="{{ d.id }}">
-                            <button type="submit" name="accion" value="aceptar" class="btn btn-success flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Aceptar</button>
-                            <button type="submit" name="accion" value="rechazar" class="btn btn-danger flex-grow-1 py-2 fw-semibold" style="border-radius: 10px; font-size: 0.85rem;">Rechazar</button>
+                            <button type="submit" name="accion" value="aceptar"
+                                    class="btn btn-success flex-grow-1 py-2 fw-semibold"
+                                    style="border-radius:10px;font-size:0.85rem;">Aceptar</button>
+                            <button type="submit" name="accion" value="rechazar"
+                                    class="btn btn-danger flex-grow-1 py-2 fw-semibold"
+                                    style="border-radius:10px;font-size:0.85rem;">Rechazar</button>
                         </form>
                     {% else %}
                         <div class="text-center py-2 mb-2">
@@ -406,18 +451,24 @@
                             {% endif %}
                         </div>
                     {% endif %}
+                {% endif %}
 
-                    <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="w-100 text-center">
-                        <input type="hidden" name="donacion_id" value="{{ d.id }}">
-                        <button type="submit" name="accion" value="eliminar" class="btn btn-outline-secondary w-100 py-2" style="border-radius: 10px; font-size: 0.85rem;" onclick="return confirm('¿Deseas eliminar este registro?');">
-                            <i class="bi bi-trash3-fill"></i> Eliminar registro
-                        </button>
-                    </form>
-                </div>
-            </div> 
+                {# Botón eliminar — aparece para TODOS los tipos #}
+                <form action="{{ url_for('gestionar_donacion') }}" method="POST" class="w-100 text-center">
+                    <input type="hidden" name="donacion_id" value="{{ d.id }}">
+                    <button type="submit" name="accion" value="eliminar"
+                            class="btn btn-outline-secondary w-100 py-2"
+                            style="border-radius:10px;font-size:0.85rem;"
+                            onclick="return confirm('¿Deseas eliminar este registro?');">
+                        <i class="bi bi-trash3-fill"></i> Eliminar registro
+                    </button>
+                </form>
+            </div>
+
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
+</div>
 
     <div id="modalFotoOverlay" onclick="this.classList.remove('activo')">
         <button class="btn-cerrar-foto" onclick="document.getElementById('modalFotoOverlay').classList.remove('activo')">×</button>

@@ -606,5 +606,34 @@ class DonacionModel:
             return []
         finally:
             if conn: conn.close()
-        
+            
+    # En models/donacion_model.py
+
+    def guardar_metodo_pago(self, usuario_id, token, ultimos_4, marca):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            query = "INSERT INTO metodos_pago (usuario_id, token_pasarela, ultimos_4, marca) VALUES (%s, %s, %s, %s)"
+            cursor.execute(query, (usuario_id, token, ultimos_4, marca))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error al guardar tarjeta: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def obtener_metodos_usuario(self, usuario_id):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor(dictionary=True)
+            # Agregué 'token_pasarela' a la lista de campos
+            cursor.execute("""
+                SELECT id, token_pasarela, ultimos_4, marca 
+                FROM metodos_pago 
+                WHERE usuario_id = %s
+            """, (usuario_id,))
+            return cursor.fetchall()
+        finally:
+            conn.close()
              

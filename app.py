@@ -208,6 +208,14 @@ def reporte_admin():
         return redirect(url_for('login'))
     return render_template('reporte_admin.html')
 
+# ================= RUTAS DE GESTIÓN =================
+
+@app.route('/eliminar_metodo_pago/<int:id>', methods=['POST'])
+def eliminar_metodo_pago(id):
+    if 'usuario_id' not in session:
+        return redirect(url_for('login'))
+    return donacion_ctrl.eliminar_metodo_pago_accion(id, session)
+
 # ================= RUTAS DE ACCIONES =================
 
 @app.route("/subir_foto", methods=["POST"])

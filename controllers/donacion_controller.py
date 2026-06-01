@@ -197,11 +197,12 @@ class DonacionController:
         if "usuario_id" not in session:
             return redirect(url_for("login"))
             
+        usuario_id = session["usuario_id"]
         necesidad_prellenada = None
         if necesidad_id:
             necesidad_prellenada = self.modelo.obtener_necesidad_por_id(necesidad_id)
 
-        # 2. Obtención de fundaciones activas
+        # 2. Obtención de fundaciones activas y métodos de pago guardados
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -214,9 +215,12 @@ class DonacionController:
         fundaciones_activas = cursor.fetchall()
         conn.close()
 
+        # Obtenemos métodos de pago guardados del usuario (NUEVO)
+        metodos_guardados = self.modelo.obtener_metodos_usuario(usuario_id)
+
         # 3. Procesamiento del POST
         if request.method == "POST":
-            donador_id = session["usuario_id"]
+            donador_id = usuario_id
             tipo_donacion = request.form.get("tipo_donacion", "fisico")
             
             # Captura y validación estricta de la fundación
@@ -230,7 +234,8 @@ class DonacionController:
                 flash("❌ Debes seleccionar una fundación destino válida para continuar.", "danger")
                 return render_template("donar.html", necesidad=necesidad_prellenada, 
                                        categorias=self.modelo.obtener_categorias(), 
-                                       fundaciones_activas=fundaciones_activas)
+                                       fundaciones_activas=fundaciones_activas,
+                                       metodos=metodos_guardados)
 
             descripcion = request.form.get("descripcion")
 
@@ -238,9 +243,16 @@ class DonacionController:
             if tipo_donacion == "monetario":
                 monto = request.form.get("monto", 0)
                 referencia = request.form.get("referencia_pago", "")
-                metodo = request.form.get("metodo_pago", "Desconocido")
                 
-                # ID 5 es la categoría 'Monetaria' que acabas de crear
+                # Gestión de guardado de tarjeta (NUEVO)
+                if request.form.get("guardar_tarjeta") == "on":
+                    token_pago = request.form.get("token_pago") # Generado por JS en el frontend
+                    ultimos_4 = request.form.get("ultimos_4")
+                    marca = request.form.get("marca")
+                    if token_pago:
+                        self.modelo.guardar_metodo_pago(donador_id, token_pago, ultimos_4, marca)
+                
+                # ID 5 es la categoría 'Monetaria'
                 categoria_id = 5 
                 
                 print(f"DEBUG: Registrando monetario. Categoría ID: {categoria_id}, Monto: {monto}, Fundación: {f_id_final}")
@@ -288,7 +300,8 @@ class DonacionController:
 
         return render_template("donar.html", necesidad=necesidad_prellenada, 
                                categorias=self.modelo.obtener_categorias(), 
-                               fundaciones_activas=fundaciones_activas)
+                               fundaciones_activas=fundaciones_activas,
+                               metodos=metodos_guardados)
         
         
     def home_donador_view(self, session, request):

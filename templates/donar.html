@@ -509,6 +509,29 @@
                     <span style="color:rgba(255,255,255,0.3);font-size:0.85rem;">COP</span>
                 </div>
 
+                {% if metodos %}
+                <div class="mb-3">
+                    <label class="pago-label">O usa una tarjeta guardada:</label>
+                    <select class="pago-input" onchange="usarTarjetaGuardada(this)">
+                        <option value="">-- Selecciona una tarjeta --</option>
+                        {% for m in metodos %}
+                        <option value="{{ m.token_pasarela }}" data-marca="{{ m.marca }}" data-ultimos4="{{ m.ultimos_4 }}">
+                            {{ m.marca }} terminada en {{ m.ultimos_4 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <input type="hidden" name="token_pago" id="token_pago_input">
+                <input type="hidden" name="ultimos_4" id="ultimos_4_input">
+                <input type="hidden" name="marca" id="marca_input">
+
+                <div class="mb-2">
+                    <label style="color:white; cursor:pointer;">
+                        <input type="checkbox" name="guardar_tarjeta"> Guardar esta tarjeta para futuros pagos
+                    </label>
+                </div>
+
                 {# Tarjeta visual #}
                 <div class="card-visual" id="cardVisual">
                     <div class="card-chip"></div>
@@ -678,57 +701,41 @@
     // --- CORRECCIÓN CRÍTICA: Validación de Fundación al enviar ---
     const form = document.getElementById('formDonacionCompleto');
     
+        // ── CORRECCIÓN 3: listener submit — proteger selectCategoria ──
     form.addEventListener('submit', function(event) {
-        const selectFundacion = document.getElementById('selectFundacion');
-        
-        // Verificamos si existe el select (por si es una necesidad prellenada)
-        if (selectFundacion) {
-            if (selectFundacion.value === "") {
-                event.preventDefault(); // Detiene el envío
-                event.stopPropagation();
-                
-                // Efecto visual para que el usuario vea dónde está el error
-                selectFundacion.style.border = "2px solid red";
-                alert("¡Atención! Debes seleccionar una fundación destino.");
-                selectFundacion.focus();
-                return false;
-            }
+        const selectFundacion = document.querySelector('select[name="fundacion_id"]');
+        if (selectFundacion && selectFundacion.value === '') {
+            event.preventDefault();
+            event.stopPropagation();
+            selectFundacion.style.border = '2px solid #dc3545';
+            selectFundacion.focus();
+            return false;
         }
     });
 
-        // En tu función de validación JS
-        function validarYEnviar() {
+        // ── CORRECCIÓN 2: validarYEnviar — selectCategoria puede no existir ──
+    function validarYEnviar() {
         const fundacionSelect = document.querySelector('select[name="fundacion_id"]');
-        
-        // 1. Validar
-        if (!fundacionSelect || fundacionSelect.value === "") {
-            // Poner borde rojo para indicar dónde está el error
-            fundacionSelect.style.border = "2px solid #dc3545";
+        const monto = document.getElementById('inputMonto').value;
+
+        if (fundacionSelect && fundacionSelect.value === '') {
+            fundacionSelect.style.border = '2px solid #dc3545';
             fundacionSelect.focus();
-            
-            // ¡NO USES ALERT! 
-            // Si quieres que el usuario vea un mensaje, debes mostrar el Toast 
-            // o simplemente dejar el borde rojo.
-            // Si quieres forzar el mensaje, mejor haz que el formulario se envíe 
-            // y deja que el servidor (Python) muestre el error.
-            
-            return; // Aquí termina y no hace nada más, evitando el envío vacío.
+            return;
         }
-        
-        // Si pasa la validación, enviamos
+
+        if (!monto || parseInt(monto) < 1000) {
+            document.getElementById('inputMonto').style.border = '2px solid #dc3545';
+            document.getElementById('inputMonto').focus();
+            return;
+        }
+
+        // Limpiar bordes de error antes de enviar
+        if (fundacionSelect) fundacionSelect.style.border = '';
+        document.getElementById('inputMonto').style.border = '';
+
         document.getElementById('formDonacionCompleto').submit();
     }
-
-    
-    document.getElementById('cardFisica').addEventListener('click', () => {
-        radioFisica.checked = true; gestionarCampos();
-    });
-    document.getElementById('cardMonetaria').addEventListener('click', () => {
-        radioMonetaria.checked = true; gestionarCampos();
-    });
-    radioFisica.addEventListener('change', gestionarCampos);
-    radioMonetaria.addEventListener('change', gestionarCampos);
-    gestionarCampos();
 
     /* ── Métodos de pago ── */
     function seleccionarMetodo(metodo) {
@@ -746,6 +753,39 @@
             (metodo === 'credito' || metodo === 'debito') ? 'block' : 'none';
 
         document.getElementById('referenciaPago').value = metodo + '_' + Date.now();
+    }
+
+// ── CORRECCIÓN 1: usarTarjetaGuardada ──
+    function usarTarjetaGuardada(select) {
+        const token    = select.value;
+        const tokenInput = document.getElementById('token_pago_input');
+        const ult4Input  = document.getElementById('ultimos_4_input');
+        const marcaInput = document.getElementById('marca_input');
+        const numInput   = document.getElementById('inputNumTarjeta');
+
+        if (token) {
+            const option = select.options[select.selectedIndex];
+            tokenInput.value = token;
+            ult4Input.value  = option.getAttribute('data-ultimos4');
+            marcaInput.value = option.getAttribute('data-marca');
+            // Usamos readonly en vez de disabled — se envía con el form
+            numInput.readOnly = true;
+            numInput.value    = "•••• •••• •••• " + option.getAttribute('data-ultimos4');
+            // Rellenar visualmente la tarjeta
+            document.getElementById('cardTitularDisplay').textContent = 'TARJETA GUARDADA';
+            document.getElementById('cardExpDisplay').textContent     = '••/••';
+            document.getElementById('cardNumberDisplay').innerHTML    =
+                '•••• &nbsp;•••• &nbsp;•••• &nbsp;' + option.getAttribute('data-ultimos4');
+        } else {
+            tokenInput.value  = '';
+            ult4Input.value   = '';
+            marcaInput.value  = '';
+            numInput.readOnly = false;
+            numInput.value    = '';
+            document.getElementById('cardTitularDisplay').textContent = 'NOMBRE APELLIDO';
+            document.getElementById('cardExpDisplay').textContent     = 'MM/AA';
+            document.getElementById('cardNumberDisplay').innerHTML    = '•••• &nbsp;•••• &nbsp;•••• &nbsp;••••';
+        }
     }
 
     /* ── Resto de tus funciones visuales (tarjeta, preview, etc) sin cambios ── */
